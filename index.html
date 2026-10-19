@@ -96,32 +96,54 @@
 
         <!-- Options / Controls -->
         <div class="glass-card rounded-2xl p-6 space-y-4">
-            <h2 class="text-sm font-semibold text-gray-300 flex items-center gap-2">
-                <i class="fa-solid fa-sliders text-tiktokCyan"></i> เลือก Patch Variant (อุปกรณ์อัปโหลด)
-            </h2>
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-tiktokCyan"></i> เลือก Patch Variant (อุปกรณ์อัปโหลด)
+                </h2>
+                <span class="text-xs text-gray-500">*เลือกวิธีให้เหมาะกับวิดีโอของคุณ</span>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <!-- Variant 1 -->
                 <label class="cursor-pointer">
                     <input type="radio" name="variant" value="variant-1" checked class="peer hidden">
-                    <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="font-semibold text-sm text-white">Variant 1</span>
-                            <span class="text-[10px] bg-tiktokCyan/20 text-tiktokCyan px-2 py-0.5 rounded-full">แนะนำ</span>
+                    <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full flex flex-col justify-between space-y-2">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-semibold text-sm text-white">Variant 1</span>
+                                <span class="text-[10px] bg-tiktokCyan/20 text-tiktokCyan px-2 py-0.5 rounded-full font-bold">แนะนำ</span>
+                            </div>
+                            <p class="text-xs font-medium text-tiktokCyan">👉 คมชัดสูงสุด สำหรับคลิปทั่วไป</p>
                         </div>
-                        <p class="text-xs text-gray-400">Experimental method (duration64), โครงสร้างเมตาดาต้าแบบใหม่ล่าสุด</p>
+                        <p class="text-[11px] text-gray-400">ใช้เทคนิคปรับโครงสร้างแบบใหม่ล่าสุด ป้องกันการโดนบีบอัดภาพแตกได้ดีที่สุด ควรเลือกตัวนี้เป็นหลัก</p>
                     </div>
                 </label>
+
+                <!-- Variant 2 -->
                 <label class="cursor-pointer">
                     <input type="radio" name="variant" value="variant-2" class="peer hidden">
-                    <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full">
-                        <span class="font-semibold text-sm text-white block mb-1">Variant 2</span>
-                        <p class="text-xs text-gray-400">สำหรับอุปกรณ์หรือวิดีโอทั่วไป (Standard Metadata Patching)</p>
+                    <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full flex flex-col justify-between space-y-2">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-semibold text-sm text-white">Variant 2</span>
+                            </div>
+                            <p class="text-xs font-medium text-amber-400">👉 ใช้เมื่อ Variant 1 มีปัญหา</p>
+                        </div>
+                        <p class="text-[11px] text-gray-400">ใช้โครงสร้างมาตรฐานของมือถือทั่วไป มีความเสถียรสูง เหมาะสำหรับคลิปที่ใช้วิธีแรกแล้วเล่นไม่ได้</p>
                     </div>
                 </label>
+
+                <!-- Variant 3 -->
                 <label class="cursor-pointer">
                     <input type="radio" name="variant" value="variant-3" class="peer hidden">
-                    <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full">
-                        <span class="font-semibold text-sm text-white block mb-1">Variant 3</span>
-                        <p class="text-xs text-gray-400">ทางเลือกสำรอง หาก Variant 1 หรือ 2 ยังถูกบีบอัด</p>
+                    <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full flex flex-col justify-between space-y-2">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-semibold text-sm text-white">Variant 3</span>
+                            </div>
+                            <p class="text-xs font-medium text-tiktokRed">👉 ทางเลือกสำรองสุดท้าย</p>
+                        </div>
+                        <p class="text-[11px] text-gray-400">โครงสร้างไฟล์แบบพิเศษ ออกแบบมาไว้แก้ทาง เวลาที่ TikTok มีการอัปเดตระบบตรวจจับใหม่</p>
                     </div>
                 </label>
             </div>
@@ -330,18 +352,16 @@
             patchBtn.disabled = false;
         }
 
-        // --- Native Fast MP4 Box Fixer (No Heavy Transcoding Needed) ---
+        // Native Fast MP4 Box Fixer
         async function sanitizeMp4File(file) {
             const buffer = await file.arrayBuffer();
             const view = new DataView(buffer);
             let offset = 0;
             let moovAtom = null;
             let moovOffset = 0;
-            let moovSize = 0;
             let ftypAtom = null;
             let mdatAtom = null;
 
-            // Scan MP4 Atoms
             while (offset < buffer.byteLength - 8) {
                 const size = view.getUint32(offset);
                 const type = String.fromCharCode(
@@ -358,7 +378,6 @@
                     ftypAtom = buffer.slice(offset, offset + atomSize);
                 } else if (type === 'moov') {
                     moovOffset = offset;
-                    moovSize = atomSize;
                     moovAtom = buffer.slice(offset, offset + atomSize);
                 } else if (type === 'mdat') {
                     mdatAtom = buffer.slice(offset, offset + atomSize);
@@ -367,7 +386,6 @@
                 offset += atomSize;
             }
 
-            // If moov atom is at the end (Common iOS issue), move moov to the front (Fast-Start)
             if (moovAtom && ftypAtom && mdatAtom && moovOffset > 0) {
                 const cleanBuffer = new Blob([ftypAtom, moovAtom, mdatAtom], { type: 'video/mp4' });
                 return new File([cleanBuffer], file.name, { type: 'video/mp4' });
@@ -399,7 +417,6 @@
                 progressBar.style.width = "35%";
                 statusPercent.textContent = "35%";
 
-                // Quick Fast-Start Patching
                 const cleanFile = await sanitizeMp4File(currentFile);
 
                 statusText.textContent = "Step 2/2: กำลังปรับแต่ง Metadata (CompressBase API)...";
