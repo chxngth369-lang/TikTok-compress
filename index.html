@@ -111,10 +111,10 @@
             <div id="authContainer">
                 <button id="googleLoginBtn" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-gray-200 transition-all shadow-lg cursor-pointer">
                     <i class="fa-brands fa-google text-red-500 text-sm"></i> 
-                    <span>เข้าสู่ระบบซิงค์โควตา</span>
+                    <span>เข้าสู่ระบบด้วย Google</span>
                 </button>
                 <div id="userProfile" class="hidden flex items-center gap-2.5 bg-cardBg px-3 py-1.5 rounded-xl border border-borderBg shadow-lg">
-                    <img id="userAvatar" src="" alt="Avatar" class="w-7 h-7 rounded-full border border-tiktokCyan">
+                    <img id="userAvatar" src="" alt="Avatar" referrerpolicy="no-referrer" class="w-7 h-7 rounded-full border border-tiktokCyan">
                     <span id="userName" class="text-xs font-bold text-white max-w-[100px] truncate"></span>
                     <button id="logoutBtn" title="ออกจากระบบ" class="text-gray-400 hover:text-tiktokRed text-xs ml-1 cursor-pointer">
                         <i class="fa-solid fa-right-from-bracket"></i>
@@ -282,7 +282,7 @@
             <div>
                 <h3 class="text-xl font-extrabold text-white">ไฟล์มีขนาดใหญ่เกิน 100 MB</h3>
                 <p class="text-xs text-gray-300 mt-2 leading-relaxed">
-                    เบราว์เซอร์บนมือถืออาจปิดตัวหรือรีเฟรชหน้าเว็บใหม่เองโดยอัตโนมัติขณะประมวลผลไฟล์ขนาดใหญ่ขนาดนี้ แนะนำให้ใช้งาน klipbase บนคอมพิวเตอร์แทน
+                    เบราว์เซอร์บน iPhone และ iPad อาจปิดตัวหรือรีเฟรชหน้าเว็บใหม่เองโดยอัตโนมัติขณะประมวลผลไฟล์ขนาดใหญ่ขนาดนี้ แนะนำให้ใช้งาน klipbase บนคอมพิวเตอร์แทน
                 </p>
             </div>
             <div class="p-3.5 rounded-2xl bg-cardBg border border-borderBg text-left">
@@ -318,9 +318,34 @@
         </div>
     </div>
 
-    <!-- Application Script -->
+    <!-- Application Script with Firebase (Redirect Mode for Mobile/iPad) -->
     <script type="module">
         import { patchVideo } from 'https://compressbase.com/method-api/client.mjs';
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ==========================================
+        // ⚙️ Firebase Config
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVQA4lxSPZFh9QqxY7wMR5kwzxBwu2t-c",
+            authDomain: "klipbase-78dd7.firebaseapp.com",
+            projectId: "klipbase-78dd7",
+            storageBucket: "klipbase-78dd7.firebasestorage.app",
+            messagingSenderId: "393982747741",
+            appId: "1:393982747741:web:00fa952cc8dc56b7ba59b4",
+            measurementId: "G-434E9D8ZFW"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        const googleProvider = new GoogleAuthProvider();
+        googleProvider.setCustomParameters({
+            client_id: "939066669789-lcoo1qiur4mqdqk584mluu7h4snv37gf.apps.googleusercontent.com"
+        });
 
         const dropZone = document.getElementById('dropZone');
         const videoInput = document.getElementById('videoInput');
@@ -361,93 +386,108 @@
 
         let currentFile = null;
         let pendingFile = null;
-        let userKey = null;
+        let currentUser = null;
+        let cachedTimestamps = [];
         let generatedBlobUrl = null;
         let isCompleted = false;
 
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        function setupUserSession(user) {
-            userKey = `quota_user_${user.email}`;
-            googleLoginBtn.classList.add('hidden');
-            userProfile.classList.remove('hidden');
-            userName.textContent = user.name;
-            userAvatar.src = user.picture;
-            updateQuotaUI();
-        }
+        // จัดการผลลัพธ์หลัง Redirect กลับมาจากหน้า Google Login
+        getRedirectResult(auth).catch((error) => {
+            console.error("Redirect Auth Error:", error);
+            showError("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+        });
 
-        logoutBtn.onclick = () => {
-            localStorage.removeItem('klipbase_user');
-            userProfile.classList.add('hidden');
-            googleLoginBtn.classList.remove('hidden');
-            initAnonymousSession();
+        // --- Firebase Auth & Firestore Quota Management ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                googleLoginBtn.classList.add('hidden');
+                userProfile.classList.remove('hidden');
+                userName.textContent = user.displayName || user.email.split('@')[0];
+                userAvatar.src = user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`;
+                await syncQuotaFromServer();
+            } else {
+                currentUser = null;
+                userProfile.classList.add('hidden');
+                googleLoginBtn.classList.remove('hidden');
+                initAnonymousSession();
+            }
+        });
+
+        googleLoginBtn.onclick = async () => {
+            try {
+                // เปลี่ยนมาใช้ Redirect ป้องกันหน้าขาวบน iPad/Mobile 100%
+                await signInWithRedirect(auth, googleProvider);
+            } catch (err) {
+                console.error("Login Error:", err);
+                showError("เข้าสู่ระบบไม่สำเร็จ: " + err.message);
+            }
         };
 
-        function initAnonymousSession() {
+        logoutBtn.onclick = async () => {
+            await signOut(auth);
+        };
+
+        async function initAnonymousSession() {
             let uuid = localStorage.getItem('klipbase_device_uuid');
             if (!uuid) {
                 uuid = 'dev_' + Math.random().toString(36).substring(2, 12);
                 localStorage.setItem('klipbase_device_uuid', uuid);
             }
-            userKey = `quota_guest_${uuid}`;
+            const data = localStorage.getItem(`quota_guest_${uuid}`);
+            cachedTimestamps = data ? JSON.parse(data) : [];
             updateQuotaUI();
         }
 
-        googleLoginBtn.onclick = () => {
-            const emailInput = prompt("🔗 ซิงค์โควตาใช้งาน\n\nกรุณากรอกอีเมล Google ของคุณ เพื่อใช้ซิงค์โควตารวมกันทุกอุปกรณ์:");
-            if (emailInput && emailInput.includes('@')) {
-                const cleanEmail = emailInput.trim().toLowerCase();
-                const user = { 
-                    name: cleanEmail.split('@')[0], 
-                    email: cleanEmail, 
-                    picture: `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanEmail}` 
-                };
-                localStorage.setItem('klipbase_user', JSON.stringify(user));
-                setupUserSession(user);
-            }
-        };
+        async function syncQuotaFromServer() {
+            if (!currentUser) return;
+            const docRef = doc(db, "quotas", currentUser.uid);
+            const docSnap = await getDoc(docRef);
+            const now = Date.now();
 
-        async function initAuthAndQuota() {
-            const savedUser = localStorage.getItem('klipbase_user');
-            if (savedUser) {
-                try {
-                    setupUserSession(JSON.parse(savedUser));
-                } catch (e) {
-                    initAnonymousSession();
-                }
+            if (docSnap.exists()) {
+                const timestamps = docSnap.data().timestamps || [];
+                cachedTimestamps = timestamps.filter(ts => (now - ts) < WEEK_IN_MS);
             } else {
-                initAnonymousSession();
+                cachedTimestamps = [];
+                await setDoc(docRef, { timestamps: [] });
             }
+            updateQuotaUI();
         }
 
-        function getQuotaHistory() {
-            if (!userKey) return [];
-            const data = localStorage.getItem(userKey);
-            if (!data) return [];
-            const timestamps = JSON.parse(data);
+        function getValidHistory() {
             const now = Date.now();
-            return timestamps.filter(ts => (now - ts) < WEEK_IN_MS);
+            return cachedTimestamps.filter(ts => (now - ts) < WEEK_IN_MS);
         }
 
         function updateQuotaUI() {
-            const history = getQuotaHistory();
-            const used = history.length;
-            const remaining = Math.max(0, MAX_QUOTA - used);
+            const history = getValidHistory();
+            const remaining = Math.max(0, MAX_QUOTA - history.length);
             quotaText.textContent = `${remaining}/${MAX_QUOTA}`;
             quotaBadge.classList.remove('hidden');
             return remaining;
         }
 
-        function recordUsage() {
-            const history = getQuotaHistory();
-            history.push(Date.now());
-            localStorage.setItem(userKey, JSON.stringify(history));
+        async function recordUsage() {
+            const now = Date.now();
+            cachedTimestamps.push(now);
+            const validHistory = getValidHistory();
+            
+            if (currentUser) {
+                const docRef = doc(db, "quotas", currentUser.uid);
+                await setDoc(docRef, { timestamps: validHistory });
+            } else {
+                let uuid = localStorage.getItem('klipbase_device_uuid');
+                localStorage.setItem(`quota_guest_${uuid}`, JSON.stringify(validHistory));
+            }
             updateQuotaUI();
         }
 
         function getResetTimeString() {
-            const history = getQuotaHistory();
+            const history = getValidHistory();
             if (history.length === 0) return "0 ชั่วโมง";
             const oldest = Math.min(...history);
             const resetTime = oldest + WEEK_IN_MS;
@@ -458,8 +498,6 @@
             if (days > 0) return `${days} วัน ${remHours} ชั่วโมง`;
             return `${hours} ชั่วโมง`;
         }
-
-        initAuthAndQuota();
 
         dropZone.onclick = () => videoInput.click();
         videoInput.onchange = (e) => handleFileSelect(e.target.files[0]);
@@ -703,7 +741,7 @@
                 progressBar.style.width = "100%";
                 statusPercent.textContent = "100%";
 
-                recordUsage();
+                await recordUsage();
 
                 const forcedBlob = new Blob([output], { type: 'application/octet-stream' });
                 generatedBlobUrl = URL.createObjectURL(forcedBlob);
