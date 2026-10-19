@@ -26,9 +26,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- FingerprintJS v3 CDN -->
     <script src="https://openfpcdn.io/fingerprintjs/v3"></script>
-    <!-- FFmpeg WASM CDN -->
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/util.js"></script>
     <style>
         body { background-color: #0D0F12; color: #E2E8F0; font-family: system-ui, -apple-system, sans-serif; }
         .glass-card { background: rgba(22, 25, 32, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
@@ -75,7 +72,7 @@
                 </div>
                 <div>
                     <p class="text-base font-medium text-white">ลากไฟล์วิดีโอมาวางที่นี่ หรือ <span class="text-tiktokCyan underline">คลิกเพื่อเลือกไฟล์</span></p>
-                    <p class="text-xs text-gray-400 mt-1">รองรับทุกไฟล์วิดีโอ (ระบบแปลงและจัดระเบียบโครงสร้างอัตโนมัติ)</p>
+                    <p class="text-xs text-gray-400 mt-1">รองรับไฟล์ .MP4 หรือ .MOV จากทุกอุปกรณ์ (iPad/iPhone/PC)</p>
                 </div>
             </div>
 
@@ -87,7 +84,7 @@
                 <div>
                     <p id="fileName" class="text-sm font-semibold text-white truncate max-w-md mx-auto">-</p>
                     <p id="fileMeta" class="text-xs text-gray-400 mt-0.5">- MB • -</p>
-                    <div id="resBadge" class="inline-block mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300">
+                    <div id="resBadge" class="inline-block mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                         พร้อมประมวลผล
                     </div>
                 </div>
@@ -212,7 +209,6 @@
         const fileInfo = document.getElementById('fileInfo');
         const fileName = document.getElementById('fileName');
         const fileMeta = document.getElementById('fileMeta');
-        const resBadge = document.getElementById('resBadge');
         const changeFileBtn = document.getElementById('changeFileBtn');
         const patchBtn = document.getElementById('patchBtn');
         const statusCard = document.getElementById('statusCard');
@@ -232,21 +228,18 @@
 
         let currentFile = null;
         let visitorId = null;
-        let ffmpegInstance = null;
 
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        // Initialize Fingerprint
+        // Quota Management
         async function initQuotaManager() {
             try {
                 if (typeof FingerprintJS !== 'undefined') {
                     const fp = await FingerprintJS.load();
                     const result = await fp.get();
                     visitorId = result.visitorId;
-                } else {
-                    throw new Error();
-                }
+                } else { throw new Error(); }
             } catch (err) {
                 let fallback = localStorage.getItem('_fallback_device_id');
                 if (!fallback) {
@@ -325,16 +318,11 @@
             statusCard.classList.add('hidden');
         }
 
-        async function handleFileSelect(file) {
+        function handleFileSelect(file) {
             if (!file) return;
-            if (!file.type.startsWith('video/')) {
-                showError("กรุณาเลือกไฟล์วิดีโอเท่านั้น");
-                return;
-            }
-
             currentFile = file;
             fileName.textContent = file.name;
-            fileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB • ${file.type}`;
+            fileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB • ${file.type || 'video/mp4'}`;
             
             uploadPrompt.classList.add('hidden');
             fileInfo.classList.remove('hidden');
@@ -342,19 +330,50 @@
             patchBtn.disabled = false;
         }
 
-        // Initialize FFmpeg on demand
-        async function getFFmpeg() {
-            if (ffmpegInstance) return ffmpegInstance;
-            const { FFmpeg } = FFmpegWASM;
-            const ffmpeg = new FFmpeg();
-            
-            const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-            await ffmpeg.load({
-                coreURL: await FFmpegUtil.toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-                wasmURL: await FFmpegUtil.toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-            });
-            ffmpegInstance = ffmpeg;
-            return ffmpegInstance;
+        // --- Native Fast MP4 Box Fixer (No Heavy Transcoding Needed) ---
+        async function sanitizeMp4File(file) {
+            const buffer = await file.arrayBuffer();
+            const view = new DataView(buffer);
+            let offset = 0;
+            let moovAtom = null;
+            let moovOffset = 0;
+            let moovSize = 0;
+            let ftypAtom = null;
+            let mdatAtom = null;
+
+            // Scan MP4 Atoms
+            while (offset < buffer.byteLength - 8) {
+                const size = view.getUint32(offset);
+                const type = String.fromCharCode(
+                    view.getUint8(offset + 4),
+                    view.getUint8(offset + 5),
+                    view.getUint8(offset + 6),
+                    view.getUint8(offset + 7)
+                );
+
+                const atomSize = (size === 1) ? Number(view.getBigUint64(offset + 8)) : size;
+                if (atomSize <= 0 || offset + atomSize > buffer.byteLength) break;
+
+                if (type === 'ftyp') {
+                    ftypAtom = buffer.slice(offset, offset + atomSize);
+                } else if (type === 'moov') {
+                    moovOffset = offset;
+                    moovSize = atomSize;
+                    moovAtom = buffer.slice(offset, offset + atomSize);
+                } else if (type === 'mdat') {
+                    mdatAtom = buffer.slice(offset, offset + atomSize);
+                }
+
+                offset += atomSize;
+            }
+
+            // If moov atom is at the end (Common iOS issue), move moov to the front (Fast-Start)
+            if (moovAtom && ftypAtom && mdatAtom && moovOffset > 0) {
+                const cleanBuffer = new Blob([ftypAtom, moovAtom, mdatAtom], { type: 'video/mp4' });
+                return new File([cleanBuffer], file.name, { type: 'video/mp4' });
+            }
+
+            return file;
         }
 
         patchBtn.onclick = async () => {
@@ -376,46 +395,20 @@
             resultCard.classList.add('hidden');
 
             try {
-                statusText.textContent = "กำลังโหลดระบบแปลงไฟล์ (FFmpeg)...";
-                progressBar.style.width = "10%";
-                statusPercent.textContent = "10%";
+                statusText.textContent = "Step 1/2: กำลังตรวจเช็กและจัดระเบียบโครงสร้าง MP4 Container...";
+                progressBar.style.width = "35%";
+                statusPercent.textContent = "35%";
 
-                const ffmpeg = await getFFmpeg();
-
-                statusText.textContent = "Step 1/2: กำลังปรับโครงสร้างและย่อความละเอียดให้พอดี 1080p...";
-                progressBar.style.width = "30%";
-                statusPercent.textContent = "30%";
-
-                const inputName = 'input_video.mp4';
-                const outputName = 'output_processed.mp4';
-                
-                const fileData = await FFmpegUtil.fetchFile(currentFile);
-                await ffmpeg.writeFile(inputName, fileData);
-
-                // ใช้คำสั่ง FFmpeg บีบอัดและปรับความละเอียดแนวตั้งให้พอดี 1080p (1080:1920) 60fps พร้อมเคลียร์โครงสร้าง MP4 Box ให้สมบูรณ์แบบ
-                await ffmpeg.exec([
-                    '-i', inputName,
-                    '-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2',
-                    '-r', '60',
-                    '-c:v', 'libx264',
-                    '-preset', 'fast',
-                    '-crf', '23',
-                    '-c:a', 'aac',
-                    '-movflags', '+faststart',
-                    outputName
-                ]);
+                // Quick Fast-Start Patching
+                const cleanFile = await sanitizeMp4File(currentFile);
 
                 statusText.textContent = "Step 2/2: กำลังปรับแต่ง Metadata (CompressBase API)...";
-                progressBar.style.width = "75%";
-                statusPercent.textContent = "75%";
-
-                const data = await ffmpeg.readFile(outputName);
-                const processedBlob = new Blob([data.buffer], { type: 'video/mp4' });
-                const processedFile = new File([processedBlob], currentFile.name, { type: 'video/mp4' });
+                progressBar.style.width = "70%";
+                statusPercent.textContent = "70%";
 
                 const selectedVariant = document.querySelector('input[name="variant"]:checked').value;
 
-                const output = await patchVideo(processedFile, {
+                const output = await patchVideo(cleanFile, {
                     postingDevice: selectedVariant,
                     signal: AbortSignal.timeout(180000),
                     onStatus: (msg) => {
@@ -440,7 +433,7 @@
 
             } catch (err) {
                 statusCard.classList.add('hidden');
-                showError(err.message || "เกิดข้อผิดพลาดในการประมวลผลวิดีโอ");
+                showError(err.message || "เกิดข้อผิดพลาดในการปรับแต่งวิดีโอ");
             } finally {
                 patchBtn.disabled = false;
             }
