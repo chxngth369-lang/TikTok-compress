@@ -318,6 +318,15 @@
         </div>
     </div>
 
+    <!-- ตรวจสอบว่าสคริปต์หลักโหลดสำเร็จหรือไม่ -->
+    <script>
+        document.getElementById('googleLoginBtn').addEventListener('click', function () {
+            if (!window.__klipbaseReady) {
+                alert('สคริปต์หลักโหลดไม่สำเร็จ (Firebase import พัง) ลองรีเฟรชหน้าหรือเช็คอินเทอร์เน็ต');
+            }
+        });
+    </script>
+
     <!-- Application Script with Firebase -->
     <script type="module">
         // หมายเหตุ: patchVideo ถูกย้ายไปโหลดตอนใช้งานจริง (dynamic import) เพื่อไม่ให้ import พังแล้วทำให้ปุ่มล็อกอินตายไปด้วย
@@ -325,12 +334,14 @@
         import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        window.__klipbaseReady = true;
+
         // ==========================================
         // ⚙️ Firebase Config
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCVQA4lxSPZFh9QqxY7wMR5kwzxBwu2t-c",
-            authDomain: "authDomain: "tiktokcompress.vercel.app",
+            authDomain: "tiktokcompress.vercel.app",
             projectId: "klipbase-78dd7",
             storageBucket: "klipbase-78dd7.firebasestorage.app",
             messagingSenderId: "393982747741",
@@ -421,12 +432,14 @@
         });
 
         googleLoginBtn.onclick = async () => {
+            alert('กดปุ่มแล้ว กำลังเปิดหน้าล็อกอิน...'); // ลบบรรทัดนี้ได้เมื่อใช้งานได้แล้ว
             errorCard.classList.add('hidden');
             try {
                 // ใช้ popup ก่อน (ทำงานได้ดีบนเบราว์เซอร์ใหม่ที่มี storage partitioning)
                 await signInWithPopup(auth, googleProvider);
             } catch (err) {
                 console.error("Login Error:", err);
+                alert("Login error: " + (err.code || err.message)); // ลบบรรทัดนี้ได้เมื่อใช้งานได้แล้ว
 
                 // popup โดนบล็อก / ไม่รองรับ -> fallback ไป redirect
                 if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
@@ -807,6 +820,7 @@
         function showError(msg) {
             errorText.textContent = msg;
             errorCard.classList.remove('hidden');
+            errorCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     </script>
 </body>
