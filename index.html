@@ -210,8 +210,8 @@
             <button id="patchBtn" disabled class="w-full py-4 rounded-2xl gradient-btn text-black font-extrabold text-base flex items-center justify-center gap-2 shadow-2xl mt-4 group">
                 <!-- Button Shimmer Effect -->
                 <div class="absolute inset-0 w-1/2 h-full bg-white/30 -skew-x-12 -translate-x-full group-hover:animate-shimmer pointer-events-none"></div>
-                <i class="fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12 transition-transform"></i>
-                <span>เริ่มปรับแต่งวิดีโอ (Patch Video)</span>
+                <i id="patchBtnIcon" class="fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12 transition-transform"></i>
+                <span id="patchBtnText">เริ่มปรับแต่งวิดีโอ (Patch Video)</span>
             </button>
         </div>
 
@@ -239,9 +239,9 @@
             <div class="p-4 rounded-2xl bg-cardBg/90 border border-borderBg flex flex-col md:flex-row items-center justify-between gap-5">
                 <video id="videoPreview" controls class="max-h-52 rounded-xl w-full md:w-auto bg-black shadow-lg"></video>
                 <div class="flex flex-col gap-3 w-full md:w-auto">
-                    <a id="downloadBtn" download class="px-8 py-4 rounded-xl bg-tiktokCyan text-black font-extrabold text-sm text-center flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all shadow-lg hover:scale-105">
+                    <button id="downloadBtn" class="px-8 py-4 rounded-xl bg-tiktokCyan text-black font-extrabold text-sm text-center flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all shadow-lg hover:scale-105">
                         <i class="fa-solid fa-download text-base"></i> ดาวน์โหลดวิดีโอ HD
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -322,6 +322,8 @@
         const fileMeta = document.getElementById('fileMeta');
         const changeFileBtn = document.getElementById('changeFileBtn');
         const patchBtn = document.getElementById('patchBtn');
+        const patchBtnText = document.getElementById('patchBtnText');
+        const patchBtnIcon = document.getElementById('patchBtnIcon');
         const statusCard = document.getElementById('statusCard');
         const statusText = document.getElementById('statusText');
         const statusPercent = document.getElementById('statusPercent');
@@ -346,6 +348,8 @@
         let currentFile = null;
         let pendingFile = null;
         let visitorId = null;
+        let generatedBlobUrl = null;
+        let isCompleted = false;
 
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
@@ -428,20 +432,28 @@
         function resetState() {
             currentFile = null;
             pendingFile = null;
+            generatedBlobUrl = null;
+            isCompleted = false;
             videoInput.value = '';
             uploadPrompt.classList.remove('hidden');
             fileInfo.classList.add('hidden');
+            
+            // Reset Patch Button to Original State
             patchBtn.disabled = true;
+            patchBtnText.textContent = "เริ่มปรับแต่งวิดีโอ (Patch Video)";
+            patchBtnIcon.className = "fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12 transition-transform";
+
             resultCard.classList.add('hidden');
             errorCard.classList.add('hidden');
             statusCard.classList.add('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function handleFileSelect(file) {
             if (!file) return;
             const fileSizeMB = file.size / (1024 * 1024);
 
-            // Check if file is >= 100 MB
             if (fileSizeMB >= 100) {
                 pendingFile = file;
                 confirmLargeFile.checked = false;
@@ -463,10 +475,13 @@
             uploadPrompt.classList.add('hidden');
             fileInfo.classList.remove('hidden');
             errorCard.classList.add('hidden');
+            
             patchBtn.disabled = false;
+            patchBtnText.textContent = "เริ่มปรับแต่งวิดีโอ (Patch Video)";
+            patchBtnIcon.className = "fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12 transition-transform";
+            isCompleted = false;
         }
 
-        // Modal Checkbox & Button Actions
         confirmLargeFile.onchange = (e) => {
             if (e.target.checked) {
                 proceedLargeFileBtn.disabled = false;
@@ -534,6 +549,12 @@
         }
 
         patchBtn.onclick = async () => {
+            // If process completed, click button to reset and process another video
+            if (isCompleted) {
+                resetState();
+                return;
+            }
+
             const remainingQuota = updateQuotaUI();
             if (remainingQuota <= 0) {
                 timeToReset.textContent = getResetTimeString();
@@ -577,23 +598,62 @@
 
                 recordUsage();
 
-                const outputUrl = URL.createObjectURL(output);
-                videoPreview.src = outputUrl;
-                downloadBtn.href = outputUrl;
-                downloadBtn.download = `klipbase_${currentFile.name}`;
+                generatedBlobUrl = URL.createObjectURL(output);
+                videoPreview.src = generatedBlobUrl;
 
                 setTimeout(() => {
                     statusCard.classList.add('hidden');
                     resultCard.classList.remove('hidden');
+                    
+                    // Transform Patch Button to "ปรับแต่งวิดีโออื่น"
+                    patchBtn.disabled = false;
+                    patchBtnText.textContent = "ปรับแต่งวิดีโออื่น";
+                    patchBtnIcon.className = "fa-solid fa-arrow-rotate-right text-lg group-hover:rotate-180 transition-transform";
+                    isCompleted = true;
+
+                    // Scroll to result
+                    resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }, 500);
 
             } catch (err) {
                 statusCard.classList.add('hidden');
                 showError(err.message || "เกิดข้อผิดพลาดในการปรับแต่งวิดีโอ");
-            } finally {
                 patchBtn.disabled = false;
             }
         }
+
+        // Universal Download Handler (Works for Chrome, Safari, Google App on Mobile & iPad)
+        downloadBtn.onclick = async () => {
+            if (!generatedBlobUrl) return;
+
+            try {
+                downloadBtn.disabled = true;
+                downloadBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังเตรียมไฟล์ดาวน์โหลด...`;
+
+                const response = await fetch(generatedBlobUrl);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = `klipbase_${currentFile ? currentFile.name : 'video.mp4'}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                setTimeout(() => {
+                    URL.revokeObjectURL(blobUrl);
+                    downloadBtn.disabled = false;
+                    downloadBtn.innerHTML = `<i class="fa-solid fa-download text-base"></i> ดาวน์โหลดวิดีโอ HD`;
+                }, 1000);
+
+            } catch (err) {
+                // Fallback direct open for Google App / Mobile Webview
+                window.open(generatedBlobUrl, '_blank');
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = `<i class="fa-solid fa-download text-base"></i> ดาวน์โหลดวิดีโอ HD`;
+            }
+        };
 
         function showError(msg) {
             errorText.textContent = msg;
