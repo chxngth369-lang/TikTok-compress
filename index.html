@@ -72,7 +72,7 @@
                 </div>
                 <div>
                     <p class="text-base font-medium text-white">ลากไฟล์วิดีโอมาวางที่นี่ หรือ <span class="text-tiktokCyan underline">คลิกเพื่อเลือกไฟล์</span></p>
-                    <p class="text-xs text-gray-400 mt-1">รองรับไฟล์ .MP4 หรือ .MOV จากทุกอุปกรณ์ (iPad/iPhone/PC)</p>
+                    <p class="text-xs text-gray-400 mt-1">รองรับไฟล์ .MP4 หรือ .MOV จากทุกอุปกรณ์ (แนะนำไฟล์ต่ำกว่า 100 MB สำหรับมือถือ)</p>
                 </div>
             </div>
 
@@ -201,6 +201,31 @@
         </p>
     </footer>
 
+    <!-- Large File Warning Modal (100MB+ Mobile Warning) -->
+    <div id="largeFileModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-2xl p-6 space-y-4 border-amber-500/40 text-center">
+            <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-white">ไฟล์มีขนาดใหญ่เกิน 100 MB</h3>
+                <p class="text-xs text-gray-400 mt-1">
+                    เบราว์เซอร์บน iPhone และ iPad อาจปิดตัวหรือรีเฟรชหน้าเว็บใหม่เองโดยอัตโนมัติขณะประมวลผลไฟล์ขนาดใหญ่ขนาดนี้ แนะนำให้ใช้งานผ่านคอมพิวเตอร์แทน
+                </p>
+            </div>
+            <div class="p-3 rounded-xl bg-cardBg border border-borderBg text-left">
+                <label class="flex items-start gap-2 cursor-pointer text-xs text-gray-300">
+                    <input type="checkbox" id="confirmLargeFile" class="mt-0.5 accent-tiktokCyan">
+                    <span>ฉันเข้าใจความเสี่ยงและยืนยันจะดำเนินการต่อบนอุปกรณ์นี้ (ไม่แนะนำ)</span>
+                </label>
+            </div>
+            <div class="flex gap-2">
+                <button id="cancelLargeFileBtn" class="flex-1 py-2.5 rounded-xl bg-cardBg border border-borderBg text-gray-300 text-xs hover:bg-gray-800">ยกเลิก / เปลี่ยนไฟล์</button>
+                <button id="proceedLargeFileBtn" disabled class="flex-1 py-2.5 rounded-xl gradient-btn text-black font-bold text-xs opacity-40 cursor-not-allowed">ยืนยันทำต่อ</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Quota Limit Modal -->
     <div id="quotaModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="glass-card max-w-md w-full rounded-2xl p-6 space-y-4 border-tiktokRed/40 text-center">
@@ -248,7 +273,14 @@
         const timeToReset = document.getElementById('timeToReset');
         const closeQuotaModalBtn = document.getElementById('closeQuotaModalBtn');
 
+        // Modal Elements
+        const largeFileModal = document.getElementById('largeFileModal');
+        const confirmLargeFile = document.getElementById('confirmLargeFile');
+        const cancelLargeFileBtn = document.getElementById('cancelLargeFileBtn');
+        const proceedLargeFileBtn = document.getElementById('proceedLargeFileBtn');
+
         let currentFile = null;
+        let pendingFile = null;
         let visitorId = null;
 
         const MAX_QUOTA = 7;
@@ -331,6 +363,7 @@
 
         function resetState() {
             currentFile = null;
+            pendingFile = null;
             videoInput.value = '';
             uploadPrompt.classList.remove('hidden');
             fileInfo.classList.add('hidden');
@@ -342,15 +375,57 @@
 
         function handleFileSelect(file) {
             if (!file) return;
+            const fileSizeMB = file.size / (1024 * 1024);
+
+            // Check if file is >= 100 MB
+            if (fileSizeMB >= 100) {
+                pendingFile = file;
+                confirmLargeFile.checked = false;
+                proceedLargeFileBtn.disabled = true;
+                proceedLargeFileBtn.classList.add('opacity-40', 'cursor-not-allowed');
+                largeFileModal.classList.remove('hidden');
+                return;
+            }
+
+            setAcceptedFile(file);
+        }
+
+        function setAcceptedFile(file) {
             currentFile = file;
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
             fileName.textContent = file.name;
-            fileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB • ${file.type || 'video/mp4'}`;
+            fileMeta.textContent = `${fileSizeMB} MB • ${file.type || 'video/mp4'}`;
             
             uploadPrompt.classList.add('hidden');
             fileInfo.classList.remove('hidden');
             errorCard.classList.add('hidden');
             patchBtn.disabled = false;
         }
+
+        // Modal Checkbox & Button Actions
+        confirmLargeFile.onchange = (e) => {
+            if (e.target.checked) {
+                proceedLargeFileBtn.disabled = false;
+                proceedLargeFileBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+            } else {
+                proceedLargeFileBtn.disabled = true;
+                proceedLargeFileBtn.classList.add('opacity-40', 'cursor-not-allowed');
+            }
+        };
+
+        cancelLargeFileBtn.onclick = () => {
+            largeFileModal.classList.add('hidden');
+            pendingFile = null;
+            videoInput.value = '';
+        };
+
+        proceedLargeFileBtn.onclick = () => {
+            if (pendingFile) {
+                largeFileModal.classList.add('hidden');
+                setAcceptedFile(pendingFile);
+                pendingFile = null;
+            }
+        };
 
         // Native Fast MP4 Box Fixer
         async function sanitizeMp4File(file) {
