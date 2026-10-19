@@ -169,7 +169,7 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Variant 1 (Highlight Variant) -->
+                <!-- Variant 1 -->
                 <label class="cursor-pointer">
                     <input type="radio" name="variant" value="variant-1" checked class="peer hidden">
                     <div class="p-5 rounded-2xl border-2 border-tiktokCyan/80 bg-tiktokCyan/10 peer-checked:active-variant transition-all h-full flex flex-col justify-between space-y-3 relative overflow-hidden shadow-lg hover:scale-[1.02]">
@@ -321,15 +321,16 @@
     <script type="module">
         import { patchVideo } from 'https://compressbase.com/method-api/client.mjs';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // ==========================================
-        // Firebase Config (ล็อค authDomain เป็น firebaseapp.com ป้องกัน API Key ไม่ถูกต้อง)
+        // Firebase Config (ใช้โดเมน Vercel เป็น authDomain ร่วมกับ vercel.json)
         // ==========================================
+        const useOwnDomain = location.protocol === 'https:' && location.hostname !== 'localhost';
         const firebaseConfig = {
             apiKey: "AIzaSyCVQA4lxSPZFh9QqxY7wMR5kwzxBwu2t-c",
-            authDomain: "klipbase-78dd7.firebaseapp.com",
+            authDomain: useOwnDomain ? location.hostname : "klipbase-78dd7.firebaseapp.com",
             projectId: "klipbase-78dd7",
             storageBucket: "klipbase-78dd7.firebasestorage.app",
             messagingSenderId: "393982747741",
@@ -397,13 +398,11 @@
         // ---------- Auth Error Messages ----------
         const AUTH_ERRORS = {
             'auth/unauthorized-domain': `โดเมน "${location.hostname}" ยังไม่ได้รับอนุญาต ให้เพิ่มใน Firebase > Authentication > Settings > Authorized domains`,
-            'auth/operation-not-supported-in-this-environment': 'เปิดแบบไฟล์หรือในแอปอื่นไม่ได้ ต้องเปิดผ่านเว็บ https:// ใน Safari หรือ Chrome',
+            'auth/operation-not-supported-in-this-environment': 'ต้องเปิดผ่านเว็บ https:// ใน Safari หรือ Chrome เท่านั้น',
             'auth/popup-closed-by-user': 'หน้าต่างล็อกอินถูกปิดก่อนเข้าสู่ระบบเสร็จ',
-            'auth/network-request-failed': 'เชื่อมต่ออินเทอร์เน็ตไม่ได้',
+            'auth/network-request-failed': 'เชื่อมต่ออินเทอร์เน็ตไม่ได้ หรือไฟล์ vercel.json ยังไม่ทำงาน',
             'auth/configuration-not-found': 'ยังไม่ได้เปิดใช้ Google ใน Firebase > Authentication > Sign-in method',
             'auth/operation-not-allowed': 'ยังไม่ได้เปิดใช้ Google ใน Firebase > Authentication > Sign-in method',
-            'auth/internal-error': 'เกิดข้อผิดพลาดภายใน ตรวจสอบการตั้งค่า Firebase',
-            'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'API Key ไม่ถูกต้อง ตรวจสอบค่า apiKey ในโค้ด',
             'auth/web-storage-unsupported': 'เบราว์เซอร์ปิดการเก็บข้อมูลไว้ ให้ปิดโหมดส่วนตัว (Private) แล้วลองใหม่'
         };
 
@@ -421,12 +420,6 @@
                 : 'fa-brands fa-google text-red-500 text-sm';
             googleLoginText.textContent = isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบด้วย Google';
         }
-
-        // รับผลลัพธ์หลัง Redirect กลับมาจากหน้า Google
-        getRedirectResult(auth).catch((err) => {
-            console.error('Redirect Auth Error:', err);
-            showError(getAuthErrorMessage(err));
-        });
 
         // ---------- Auth State ----------
         onAuthStateChanged(auth, async (user) => {
@@ -446,12 +439,12 @@
             }
         });
 
-        // ---------- Login Button ----------
+        // ---------- Login Button (ใช้ Popup ล้วนเพื่อความเสถียรผ่าน Vercel Proxy) ----------
         googleLoginBtn.onclick = async () => {
             errorCard.classList.add('hidden');
 
             if (location.protocol === 'file:') {
-                const msg = 'ตอนนี้เปิดเป็นไฟล์ (file://) ซึ่งล็อกอิน Google ไม่ได้ ต้องเปิดผ่านเว็บ https:// เท่านั้น';
+                const msg = 'ต้องเปิดผ่านเว็บ https:// เท่านั้น';
                 showError(msg);
                 alert(msg);
                 return;
@@ -459,21 +452,9 @@
 
             setLoginLoading(true);
             try {
-                // ลอง Popup ก่อน
                 await signInWithPopup(auth, googleProvider);
             } catch (err) {
                 console.error('Login Error:', err);
-
-                // ถ้า Popup โดนบล็อก ให้เปลี่ยนไปใช้ Redirect แทน
-                if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
-                    try {
-                        await signInWithRedirect(auth, googleProvider);
-                        return;
-                    } catch (redirectErr) {
-                        err = redirectErr;
-                    }
-                }
-
                 setLoginLoading(false);
                 if (err.code === 'auth/popup-closed-by-user') return;
 
@@ -519,7 +500,6 @@
                 }
             } catch (err) {
                 console.error('Firestore Error:', err);
-                showError(`ล็อกอินสำเร็จ แต่โหลดโควตาจากเซิร์ฟเวอร์ไม่ได้ ให้ตรวจสอบว่าสร้าง Firestore Database และตั้ง Rules แล้ว [${err.code || 'unknown'}]`);
             }
             updateQuotaUI();
         }
