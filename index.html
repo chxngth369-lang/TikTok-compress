@@ -325,16 +325,11 @@
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // ==========================================
-        // Firebase Config
-        // บน Vercel (https) จะใช้โดเมนเว็บของคุณเองเป็น authDomain
-        // ต้องมีไฟล์ vercel.json ส่งต่อ /__/auth ไปที่ firebaseapp.com ด้วย
+        // Firebase Config (ล็อค authDomain เป็น firebaseapp.com ป้องกัน API Key ไม่ถูกต้อง)
         // ==========================================
-        const FIREBASE_DEFAULT_AUTH_DOMAIN = "klipbase-78dd7.firebaseapp.com";
-        const useOwnDomain = location.protocol === 'https:' && location.hostname !== 'localhost';
-
         const firebaseConfig = {
             apiKey: "AIzaSyCVQA4lxSPZFh9QqxY7wMR5kwzxBwu2t-c",
-            authDomain: useOwnDomain ? location.hostname : FIREBASE_DEFAULT_AUTH_DOMAIN,
+            authDomain: "klipbase-78dd7.firebaseapp.com",
             projectId: "klipbase-78dd7",
             storageBucket: "klipbase-78dd7.firebasestorage.app",
             messagingSenderId: "393982747741",
@@ -404,10 +399,11 @@
             'auth/unauthorized-domain': `โดเมน "${location.hostname}" ยังไม่ได้รับอนุญาต ให้เพิ่มใน Firebase > Authentication > Settings > Authorized domains`,
             'auth/operation-not-supported-in-this-environment': 'เปิดแบบไฟล์หรือในแอปอื่นไม่ได้ ต้องเปิดผ่านเว็บ https:// ใน Safari หรือ Chrome',
             'auth/popup-closed-by-user': 'หน้าต่างล็อกอินถูกปิดก่อนเข้าสู่ระบบเสร็จ',
-            'auth/network-request-failed': 'เชื่อมต่ออินเทอร์เน็ตไม่ได้ หรือไฟล์ vercel.json ยังไม่ทำงาน',
+            'auth/network-request-failed': 'เชื่อมต่ออินเทอร์เน็ตไม่ได้',
             'auth/configuration-not-found': 'ยังไม่ได้เปิดใช้ Google ใน Firebase > Authentication > Sign-in method',
             'auth/operation-not-allowed': 'ยังไม่ได้เปิดใช้ Google ใน Firebase > Authentication > Sign-in method',
-            'auth/internal-error': 'เกิดข้อผิดพลาดภายใน ตรวจสอบไฟล์ vercel.json และ Redirect URI ใน Google Cloud',
+            'auth/internal-error': 'เกิดข้อผิดพลาดภายใน ตรวจสอบการตั้งค่า Firebase',
+            'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'API Key ไม่ถูกต้อง ตรวจสอบค่า apiKey ในโค้ด',
             'auth/web-storage-unsupported': 'เบราว์เซอร์ปิดการเก็บข้อมูลไว้ ให้ปิดโหมดส่วนตัว (Private) แล้วลองใหม่'
         };
 
@@ -463,7 +459,7 @@
 
             setLoginLoading(true);
             try {
-                // ลอง Popup ก่อน (ต้องเรียกทันทีหลังกดปุ่ม ไม่งั้น iOS จะบล็อก)
+                // ลอง Popup ก่อน
                 await signInWithPopup(auth, googleProvider);
             } catch (err) {
                 console.error('Login Error:', err);
@@ -479,7 +475,7 @@
                 }
 
                 setLoginLoading(false);
-                if (err.code === 'auth/popup-closed-by-user') return; // ผู้ใช้ปิดเอง ไม่ต้องแจ้ง
+                if (err.code === 'auth/popup-closed-by-user') return;
 
                 const msg = getAuthErrorMessage(err);
                 showError(msg);
@@ -522,7 +518,6 @@
                     await setDoc(docRef, { timestamps: [] });
                 }
             } catch (err) {
-                // ถ้ายังไม่ได้สร้าง Firestore หรือ Rules ไม่อนุญาต จะไม่ทำให้ล็อกอินพัง
                 console.error('Firestore Error:', err);
                 showError(`ล็อกอินสำเร็จ แต่โหลดโควตาจากเซิร์ฟเวอร์ไม่ได้ ให้ตรวจสอบว่าสร้าง Firestore Database และตั้ง Rules แล้ว [${err.code || 'unknown'}]`);
             }
