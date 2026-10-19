@@ -329,7 +329,6 @@
 
     <!-- Application Script with Firebase -->
     <script type="module">
-        // หมายเหตุ: patchVideo ถูกย้ายไปโหลดตอนใช้งานจริง (dynamic import) เพื่อไม่ให้ import พังแล้วทำให้ปุ่มล็อกอินตายไปด้วย
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -403,13 +402,11 @@
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        // จัดการผลลัพธ์หลัง Redirect กลับมาจากหน้า Google Login (กรณี fallback)
         getRedirectResult(auth).catch((error) => {
             console.error("Redirect Auth Error:", error);
             showError("เข้าสู่ระบบไม่สำเร็จ: " + (error.code || error.message));
         });
 
-        // --- Firebase Auth & Firestore Quota Management ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -432,16 +429,11 @@
         });
 
         googleLoginBtn.onclick = async () => {
-            alert('กดปุ่มแล้ว กำลังเปิดหน้าล็อกอิน...'); // ลบบรรทัดนี้ได้เมื่อใช้งานได้แล้ว
             errorCard.classList.add('hidden');
             try {
-                // ใช้ popup ก่อน (ทำงานได้ดีบนเบราว์เซอร์ใหม่ที่มี storage partitioning)
                 await signInWithPopup(auth, googleProvider);
             } catch (err) {
                 console.error("Login Error:", err);
-                alert("Login error: " + (err.code || err.message)); // ลบบรรทัดนี้ได้เมื่อใช้งานได้แล้ว
-
-                // popup โดนบล็อก / ไม่รองรับ -> fallback ไป redirect
                 if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
                     try {
                         await signInWithRedirect(auth, googleProvider);
@@ -450,8 +442,6 @@
                         err = e;
                     }
                 }
-
-                // ผู้ใช้ปิดหน้าต่างเอง ไม่ต้องแจ้ง error
                 if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
 
                 if (err.code === 'auth/unauthorized-domain') {
@@ -767,7 +757,6 @@
 
                 const selectedVariant = document.querySelector('input[name="variant"]:checked').value;
 
-                // โหลด patchVideo ตอนใช้งานจริง
                 const { patchVideo } = await import('https://compressbase.com/method-api/client.mjs');
 
                 const output = await patchVideo(fileToProcess, {
