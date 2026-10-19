@@ -348,35 +348,53 @@
 
         let currentFile = null;
         let pendingFile = null;
-        let visitorId = null;
+        let deviceUuid = null;
         let generatedBlobUrl = null;
         let isCompleted = false;
 
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        // Quota Management
+        // Persistent Universal Quota Manager (Shared across localStorage & Cookie storage)
         async function initQuotaManager() {
             try {
-                if (typeof FingerprintJS !== 'undefined') {
-                    const fp = await FingerprintJS.load();
-                    const result = await fp.get();
-                    visitorId = result.visitorId;
-                } else { throw new Error(); }
+                let uuid = localStorage.getItem('klipbase_device_uuid');
+                if (!uuid) {
+                    // Try checking cookie fallback
+                    const match = document.cookie.match(new RegExp('(^| )klipbase_uuid=([^;]+)'));
+                    if (match) {
+                        uuid = match[2];
+                        localStorage.setItem('klipbase_device_uuid', uuid);
+                    }
+                }
+
+                if (!uuid) {
+                    if (typeof FingerprintJS !== 'undefined') {
+                        const fp = await FingerprintJS.load();
+                        const result = await fp.get();
+                        uuid = result.visitorId;
+                    } else {
+                        uuid = 'dev_' + Math.random().toString(36).substring(2, 12);
+                    }
+                    localStorage.setItem('klipbase_device_uuid', uuid);
+                    // Set cookie valid for 1 year
+                    document.cookie = `klipbase_uuid=${uuid}; path=/; max-age=31536000; SameSite=Lax`;
+                }
+                deviceUuid = uuid;
             } catch (err) {
-                let fallback = localStorage.getItem('_fallback_device_id');
+                let fallback = localStorage.getItem('klipbase_device_uuid');
                 if (!fallback) {
                     fallback = 'dev_' + Math.random().toString(36).substring(2, 12);
-                    localStorage.setItem('_fallback_device_id', fallback);
+                    localStorage.setItem('klipbase_device_uuid', fallback);
                 }
-                visitorId = fallback;
+                deviceUuid = fallback;
             }
             updateQuotaUI();
         }
 
         function getQuotaHistory() {
-            if (!visitorId) return [];
-            const data = localStorage.getItem(`quota_${visitorId}`);
+            if (!deviceUuid) return [];
+            const data = localStorage.getItem(`quota_${deviceUuid}`);
             if (!data) return [];
             const timestamps = JSON.parse(data);
             const now = Date.now();
@@ -395,7 +413,7 @@
         function recordUsage() {
             const history = getQuotaHistory();
             history.push(Date.now());
-            localStorage.setItem(`quota_${visitorId}`, JSON.stringify(history));
+            localStorage.setItem(`quota_${deviceUuid}`, JSON.stringify(history));
             updateQuotaUI();
         }
 
@@ -659,10 +677,9 @@
 
                 recordUsage();
 
-                // Force download blob type implementation
                 const forcedBlob = new Blob([output], { type: 'application/octet-stream' });
                 generatedBlobUrl = URL.createObjectURL(forcedBlob);
-                videoPreview.src = URL.createObjectURL(output); // Preview using normal video url
+                videoPreview.src = URL.createObjectURL(output);
 
                 setTimeout(() => {
                     statusCard.classList.add('hidden');
@@ -683,7 +700,6 @@
             }
         }
 
-        // Direct Forced Download Link Trigger
         downloadBtn.onclick = () => {
             if (!generatedBlobUrl) return;
 
