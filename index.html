@@ -110,8 +110,8 @@
             <!-- Auth Section -->
             <div id="authContainer">
                 <button id="googleLoginBtn" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-gray-200 transition-all shadow-lg cursor-pointer">
-                    <i class="fa-brands fa-google text-red-500 text-sm"></i> 
-                    <span>เข้าสู่ระบบด้วย Google</span>
+                    <i id="googleLoginIcon" class="fa-brands fa-google text-red-500 text-sm"></i> 
+                    <span id="googleLoginText">เข้าสู่ระบบด้วย Google</span>
                 </button>
                 <div id="userProfile" class="hidden flex items-center gap-2.5 bg-cardBg px-3 py-1.5 rounded-xl border border-borderBg shadow-lg">
                     <img id="userAvatar" src="" alt="Avatar" referrerpolicy="no-referrer" class="w-7 h-7 rounded-full border border-tiktokCyan">
@@ -216,7 +216,6 @@
 
             <!-- Action Button -->
             <button id="patchBtn" disabled class="w-full py-4 rounded-2xl gradient-btn text-black font-extrabold text-base flex items-center justify-center gap-2 shadow-2xl mt-4 group">
-                <!-- Button Shimmer Effect -->
                 <div class="absolute inset-0 w-1/2 h-full bg-white/30 -skew-x-12 -translate-x-full group-hover:animate-shimmer pointer-events-none"></div>
                 <i id="patchBtnIcon" class="fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12 transition-transform"></i>
                 <span id="patchBtnText">เริ่มปรับแต่งวิดีโอ (Patch Video)</span>
@@ -224,7 +223,7 @@
         </div>
 
         <!-- Progress Status -->
-        <div id="statusCard" class="hidden glass-card rounded-3xl p-6 space-y-3 animate-fade-in">
+        <div id="statusCard" class="hidden glass-card rounded-3xl p-6 space-y-3">
             <div class="flex justify-between items-center text-xs font-bold text-gray-200">
                 <span id="statusText" class="font-medium flex items-center gap-2">
                     <i class="fa-solid fa-circle-notch fa-spin text-tiktokCyan"></i> กำลังเตรียมพร้อม...
@@ -239,13 +238,13 @@
         </div>
 
         <!-- Result Card -->
-        <div id="resultCard" class="hidden glass-card rounded-3xl p-6 space-y-4 border-tiktokCyan/50 shadow-2xl animate-fade-in">
+        <div id="resultCard" class="hidden glass-card rounded-3xl p-6 space-y-4 border-tiktokCyan/50 shadow-2xl">
             <div class="flex items-center gap-3 text-emerald-400">
                 <i class="fa-solid fa-circle-check text-2xl animate-bounce"></i>
                 <span class="font-bold text-white text-base">ปรับแต่งเมตาดาต้าสำเร็จเรียบร้อย! พร้อมอัปโหลดลง TikTok</span>
             </div>
             <div class="p-4 rounded-2xl bg-cardBg/90 border border-borderBg flex flex-col md:flex-row items-center justify-between gap-5">
-                <video id="videoPreview" controls class="max-h-52 rounded-xl w-full md:w-auto bg-black shadow-lg"></video>
+                <video id="videoPreview" controls playsinline class="max-h-52 rounded-xl w-full md:w-auto bg-black shadow-lg"></video>
                 <div class="flex flex-col gap-3 w-full md:w-auto">
                     <a id="downloadBtn" class="px-8 py-4 rounded-xl bg-tiktokCyan text-black font-extrabold text-sm text-center flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all shadow-lg hover:scale-105 cursor-pointer">
                         <i class="fa-solid fa-download text-base"></i> ดาวน์โหลดวิดีโอ HD
@@ -255,7 +254,7 @@
         </div>
 
         <!-- Error Alert -->
-        <div id="errorCard" class="hidden glass-card rounded-2xl p-4 bg-red-500/10 border-red-500/40 text-red-400 text-xs flex items-center gap-3 animate-fade-in">
+        <div id="errorCard" class="hidden glass-card rounded-2xl p-4 bg-red-500/10 border-red-500/40 text-red-400 text-xs flex items-center gap-3">
             <i class="fa-solid fa-triangle-exclamation text-xl text-red-400"></i>
             <div>
                 <p class="font-bold text-sm">เกิดข้อผิดพลาด</p>
@@ -273,9 +272,9 @@
         </p>
     </footer>
 
-    <!-- Large File Warning Modal (100MB+ Mobile Warning) -->
+    <!-- Large File Warning Modal -->
     <div id="largeFileModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-card max-w-md w-full rounded-3xl p-6 space-y-4 border-amber-500/50 text-center shadow-2xl animate-fade-in">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 space-y-4 border-amber-500/50 text-center shadow-2xl">
             <div class="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-2xl animate-bounce">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
@@ -300,7 +299,7 @@
 
     <!-- Quota Limit Modal -->
     <div id="quotaModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-card max-w-md w-full rounded-3xl p-6 space-y-4 border-tiktokRed/50 text-center shadow-2xl animate-fade-in">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 space-y-4 border-tiktokRed/50 text-center shadow-2xl">
             <div class="w-14 h-14 rounded-full bg-tiktokRed/20 text-tiktokRed flex items-center justify-center mx-auto text-2xl animate-pulse">
                 <i class="fa-solid fa-lock"></i>
             </div>
@@ -318,19 +317,24 @@
         </div>
     </div>
 
-    <!-- Application Script with Firebase (Redirect Mode for Mobile/iPad) -->
+    <!-- Application Script -->
     <script type="module">
         import { patchVideo } from 'https://compressbase.com/method-api/client.mjs';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // ==========================================
-        // ⚙️ Firebase Config
+        // Firebase Config
+        // บน Vercel (https) จะใช้โดเมนเว็บของคุณเองเป็น authDomain
+        // ต้องมีไฟล์ vercel.json ส่งต่อ /__/auth ไปที่ firebaseapp.com ด้วย
         // ==========================================
+        const FIREBASE_DEFAULT_AUTH_DOMAIN = "klipbase-78dd7.firebaseapp.com";
+        const useOwnDomain = location.protocol === 'https:' && location.hostname !== 'localhost';
+
         const firebaseConfig = {
             apiKey: "AIzaSyCVQA4lxSPZFh9QqxY7wMR5kwzxBwu2t-c",
-            authDomain: "klipbase-78dd7.firebaseapp.com",
+            authDomain: useOwnDomain ? location.hostname : FIREBASE_DEFAULT_AUTH_DOMAIN,
             projectId: "klipbase-78dd7",
             storageBucket: "klipbase-78dd7.firebasestorage.app",
             messagingSenderId: "393982747741",
@@ -341,12 +345,11 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        const googleProvider = new GoogleAuthProvider();
-        googleProvider.setCustomParameters({
-            client_id: "939066669789-lcoo1qiur4mqdqk584mluu7h4snv37gf.apps.googleusercontent.com"
-        });
 
+        const googleProvider = new GoogleAuthProvider();
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+        // ---------- DOM Elements ----------
         const dropZone = document.getElementById('dropZone');
         const videoInput = document.getElementById('videoInput');
         const uploadPrompt = document.getElementById('uploadPrompt');
@@ -374,6 +377,8 @@
         const closeQuotaModalBtn = document.getElementById('closeQuotaModalBtn');
 
         const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const googleLoginIcon = document.getElementById('googleLoginIcon');
+        const googleLoginText = document.getElementById('googleLoginText');
         const userProfile = document.getElementById('userProfile');
         const userAvatar = document.getElementById('userAvatar');
         const userName = document.getElementById('userName');
@@ -394,20 +399,48 @@
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        // จัดการผลลัพธ์หลัง Redirect กลับมาจากหน้า Google Login
-        getRedirectResult(auth).catch((error) => {
-            console.error("Redirect Auth Error:", error);
-            showError("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+        // ---------- Auth Error Messages ----------
+        const AUTH_ERRORS = {
+            'auth/unauthorized-domain': `โดเมน "${location.hostname}" ยังไม่ได้รับอนุญาต ให้เพิ่มใน Firebase > Authentication > Settings > Authorized domains`,
+            'auth/operation-not-supported-in-this-environment': 'เปิดแบบไฟล์หรือในแอปอื่นไม่ได้ ต้องเปิดผ่านเว็บ https:// ใน Safari หรือ Chrome',
+            'auth/popup-closed-by-user': 'หน้าต่างล็อกอินถูกปิดก่อนเข้าสู่ระบบเสร็จ',
+            'auth/network-request-failed': 'เชื่อมต่ออินเทอร์เน็ตไม่ได้ หรือไฟล์ vercel.json ยังไม่ทำงาน',
+            'auth/configuration-not-found': 'ยังไม่ได้เปิดใช้ Google ใน Firebase > Authentication > Sign-in method',
+            'auth/operation-not-allowed': 'ยังไม่ได้เปิดใช้ Google ใน Firebase > Authentication > Sign-in method',
+            'auth/internal-error': 'เกิดข้อผิดพลาดภายใน ตรวจสอบไฟล์ vercel.json และ Redirect URI ใน Google Cloud',
+            'auth/web-storage-unsupported': 'เบราว์เซอร์ปิดการเก็บข้อมูลไว้ ให้ปิดโหมดส่วนตัว (Private) แล้วลองใหม่'
+        };
+
+        function getAuthErrorMessage(err) {
+            const code = err && err.code ? err.code : 'unknown';
+            const detail = AUTH_ERRORS[code] || (err && err.message) || 'ไม่ทราบสาเหตุ';
+            return `เข้าสู่ระบบไม่สำเร็จ: ${detail} [${code}]`;
+        }
+
+        function setLoginLoading(isLoading) {
+            googleLoginBtn.disabled = isLoading;
+            googleLoginBtn.classList.toggle('opacity-60', isLoading);
+            googleLoginIcon.className = isLoading
+                ? 'fa-solid fa-circle-notch fa-spin text-gray-600 text-sm'
+                : 'fa-brands fa-google text-red-500 text-sm';
+            googleLoginText.textContent = isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบด้วย Google';
+        }
+
+        // รับผลลัพธ์หลัง Redirect กลับมาจากหน้า Google
+        getRedirectResult(auth).catch((err) => {
+            console.error('Redirect Auth Error:', err);
+            showError(getAuthErrorMessage(err));
         });
 
-        // --- Firebase Auth & Firestore Quota Management ---
+        // ---------- Auth State ----------
         onAuthStateChanged(auth, async (user) => {
+            setLoginLoading(false);
             if (user) {
                 currentUser = user;
                 googleLoginBtn.classList.add('hidden');
                 userProfile.classList.remove('hidden');
-                userName.textContent = user.displayName || user.email.split('@')[0];
-                userAvatar.src = user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`;
+                userName.textContent = user.displayName || (user.email ? user.email.split('@')[0] : 'ผู้ใช้');
+                userAvatar.src = user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.email || user.uid)}`;
                 await syncQuotaFromServer();
             } else {
                 currentUser = null;
@@ -417,13 +450,40 @@
             }
         });
 
+        // ---------- Login Button ----------
         googleLoginBtn.onclick = async () => {
+            errorCard.classList.add('hidden');
+
+            if (location.protocol === 'file:') {
+                const msg = 'ตอนนี้เปิดเป็นไฟล์ (file://) ซึ่งล็อกอิน Google ไม่ได้ ต้องเปิดผ่านเว็บ https:// เท่านั้น';
+                showError(msg);
+                alert(msg);
+                return;
+            }
+
+            setLoginLoading(true);
             try {
-                // เปลี่ยนมาใช้ Redirect ป้องกันหน้าขาวบน iPad/Mobile 100%
-                await signInWithRedirect(auth, googleProvider);
+                // ลอง Popup ก่อน (ต้องเรียกทันทีหลังกดปุ่ม ไม่งั้น iOS จะบล็อก)
+                await signInWithPopup(auth, googleProvider);
             } catch (err) {
-                console.error("Login Error:", err);
-                showError("เข้าสู่ระบบไม่สำเร็จ: " + err.message);
+                console.error('Login Error:', err);
+
+                // ถ้า Popup โดนบล็อก ให้เปลี่ยนไปใช้ Redirect แทน
+                if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+                    try {
+                        await signInWithRedirect(auth, googleProvider);
+                        return;
+                    } catch (redirectErr) {
+                        err = redirectErr;
+                    }
+                }
+
+                setLoginLoading(false);
+                if (err.code === 'auth/popup-closed-by-user') return; // ผู้ใช้ปิดเอง ไม่ต้องแจ้ง
+
+                const msg = getAuthErrorMessage(err);
+                showError(msg);
+                alert(msg);
             }
         };
 
@@ -431,29 +491,40 @@
             await signOut(auth);
         };
 
-        async function initAnonymousSession() {
+        // ---------- Quota ----------
+        function initAnonymousSession() {
             let uuid = localStorage.getItem('klipbase_device_uuid');
             if (!uuid) {
                 uuid = 'dev_' + Math.random().toString(36).substring(2, 12);
                 localStorage.setItem('klipbase_device_uuid', uuid);
             }
             const data = localStorage.getItem(`quota_guest_${uuid}`);
-            cachedTimestamps = data ? JSON.parse(data) : [];
+            try {
+                cachedTimestamps = data ? JSON.parse(data) : [];
+            } catch {
+                cachedTimestamps = [];
+            }
             updateQuotaUI();
         }
 
         async function syncQuotaFromServer() {
             if (!currentUser) return;
-            const docRef = doc(db, "quotas", currentUser.uid);
-            const docSnap = await getDoc(docRef);
-            const now = Date.now();
+            try {
+                const docRef = doc(db, "quotas", currentUser.uid);
+                const docSnap = await getDoc(docRef);
+                const now = Date.now();
 
-            if (docSnap.exists()) {
-                const timestamps = docSnap.data().timestamps || [];
-                cachedTimestamps = timestamps.filter(ts => (now - ts) < WEEK_IN_MS);
-            } else {
-                cachedTimestamps = [];
-                await setDoc(docRef, { timestamps: [] });
+                if (docSnap.exists()) {
+                    const timestamps = docSnap.data().timestamps || [];
+                    cachedTimestamps = timestamps.filter(ts => (now - ts) < WEEK_IN_MS);
+                } else {
+                    cachedTimestamps = [];
+                    await setDoc(docRef, { timestamps: [] });
+                }
+            } catch (err) {
+                // ถ้ายังไม่ได้สร้าง Firestore หรือ Rules ไม่อนุญาต จะไม่ทำให้ล็อกอินพัง
+                console.error('Firestore Error:', err);
+                showError(`ล็อกอินสำเร็จ แต่โหลดโควตาจากเซิร์ฟเวอร์ไม่ได้ ให้ตรวจสอบว่าสร้าง Firestore Database และตั้ง Rules แล้ว [${err.code || 'unknown'}]`);
             }
             updateQuotaUI();
         }
@@ -472,15 +543,18 @@
         }
 
         async function recordUsage() {
-            const now = Date.now();
-            cachedTimestamps.push(now);
+            cachedTimestamps.push(Date.now());
             const validHistory = getValidHistory();
-            
+
             if (currentUser) {
-                const docRef = doc(db, "quotas", currentUser.uid);
-                await setDoc(docRef, { timestamps: validHistory });
+                try {
+                    const docRef = doc(db, "quotas", currentUser.uid);
+                    await setDoc(docRef, { timestamps: validHistory });
+                } catch (err) {
+                    console.error('Firestore Save Error:', err);
+                }
             } else {
-                let uuid = localStorage.getItem('klipbase_device_uuid');
+                const uuid = localStorage.getItem('klipbase_device_uuid');
                 localStorage.setItem(`quota_guest_${uuid}`, JSON.stringify(validHistory));
             }
             updateQuotaUI();
@@ -490,18 +564,18 @@
             const history = getValidHistory();
             if (history.length === 0) return "0 ชั่วโมง";
             const oldest = Math.min(...history);
-            const resetTime = oldest + WEEK_IN_MS;
-            const diffMs = resetTime - Date.now();
-            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMs = (oldest + WEEK_IN_MS) - Date.now();
+            const hours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
             const days = Math.floor(hours / 24);
             const remHours = hours % 24;
             if (days > 0) return `${days} วัน ${remHours} ชั่วโมง`;
             return `${hours} ชั่วโมง`;
         }
 
+        // ---------- File Handling ----------
         dropZone.onclick = () => videoInput.click();
         videoInput.onchange = (e) => handleFileSelect(e.target.files[0]);
-        
+
         dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('border-tiktokCyan'); };
         dropZone.ondragleave = () => dropZone.classList.remove('border-tiktokCyan');
         dropZone.ondrop = (e) => {
@@ -523,7 +597,7 @@
             videoInput.value = '';
             uploadPrompt.classList.remove('hidden');
             fileInfo.classList.add('hidden');
-            
+
             patchBtn.disabled = true;
             patchBtnText.textContent = "เริ่มปรับแต่งวิดีโอ (Patch Video)";
             patchBtnIcon.className = "fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12 transition-transform";
@@ -555,12 +629,12 @@
             currentFile = file;
             const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
             fileName.textContent = file.name;
-            
+
             const videoElem = document.createElement('video');
             videoElem.preload = 'metadata';
             videoElem.src = URL.createObjectURL(file);
 
-            videoElem.onloadedmetadata = async () => {
+            videoElem.onloadedmetadata = () => {
                 URL.revokeObjectURL(videoElem.src);
                 const width = videoElem.videoWidth;
                 const height = videoElem.videoHeight;
@@ -578,7 +652,7 @@
             uploadPrompt.classList.add('hidden');
             fileInfo.classList.remove('hidden');
             errorCard.classList.add('hidden');
-            
+
             patchBtn.disabled = false;
             patchBtnText.textContent = "เริ่มปรับแต่งวิดีโอ (Patch Video)";
             patchBtnIcon.className = "fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12 transition-transform";
@@ -586,13 +660,9 @@
         }
 
         confirmLargeFile.onchange = (e) => {
-            if (e.target.checked) {
-                proceedLargeFileBtn.disabled = false;
-                proceedLargeFileBtn.classList.remove('opacity-40', 'cursor-not-allowed');
-            } else {
-                proceedLargeFileBtn.disabled = true;
-                proceedLargeFileBtn.classList.add('opacity-40', 'cursor-not-allowed');
-            }
+            proceedLargeFileBtn.disabled = !e.target.checked;
+            proceedLargeFileBtn.classList.toggle('opacity-40', !e.target.checked);
+            proceedLargeFileBtn.classList.toggle('cursor-not-allowed', !e.target.checked);
         };
 
         cancelLargeFileBtn.onclick = () => {
@@ -609,14 +679,15 @@
             }
         };
 
-        async function prepareAndDownscaleVideo(file, onProgress) {
-            return new Promise(async (resolve, reject) => {
+        // ---------- Downscale (> 1080p) ----------
+        function prepareAndDownscaleVideo(file, onProgress) {
+            return new Promise((resolve, reject) => {
                 const video = document.createElement('video');
                 video.src = URL.createObjectURL(file);
                 video.muted = true;
                 video.playsInline = true;
 
-                video.onloadedmetadata = async () => {
+                video.onloadedmetadata = () => {
                     let w = video.videoWidth;
                     let h = video.videoHeight;
 
@@ -665,11 +736,11 @@
 
                     function drawFrame() {
                         if (video.ended || video.paused) {
-                            recorder.stop();
+                            if (recorder.state === 'recording') recorder.stop();
                             return;
                         }
                         ctx.drawImage(video, 0, 0, w, h);
-                        const progress = Math.min(95, Math.round((video.currentTime / duration) * 50));
+                        const progress = Math.min(70, 10 + Math.round((video.currentTime / duration) * 60));
                         onProgress(progress);
                         requestAnimationFrame(drawFrame);
                     }
@@ -680,10 +751,11 @@
                     };
                 };
 
-                video.onerror = (err) => reject(new Error("ไม่สามารถอ่านไฟล์วิดีโอได้"));
+                video.onerror = () => reject(new Error("ไม่สามารถอ่านไฟล์วิดีโอได้"));
             });
         }
 
+        // ---------- Patch Process ----------
         patchBtn.onclick = async () => {
             if (isCompleted) {
                 resetState();
@@ -714,9 +786,14 @@
 
                 let fileToProcess = currentFile;
                 const videoCheck = document.createElement('video');
+                videoCheck.preload = 'metadata';
                 videoCheck.src = URL.createObjectURL(currentFile);
-                await new Promise(r => videoCheck.onloadedmetadata = r);
-                
+                await new Promise((resolve, reject) => {
+                    videoCheck.onloadedmetadata = resolve;
+                    videoCheck.onerror = () => reject(new Error("ไม่สามารถอ่านไฟล์วิดีโอได้"));
+                });
+                URL.revokeObjectURL(videoCheck.src);
+
                 if (videoCheck.videoWidth > 1080 || videoCheck.videoHeight > 1080) {
                     fileToProcess = await prepareAndDownscaleVideo(currentFile, (pct) => {
                         progressBar.style.width = `${pct}%`;
@@ -750,7 +827,7 @@
                 setTimeout(() => {
                     statusCard.classList.add('hidden');
                     resultCard.classList.remove('hidden');
-                    
+
                     patchBtn.disabled = false;
                     patchBtnText.textContent = "ปรับแต่งวิดีโออื่น";
                     patchBtnIcon.className = "fa-solid fa-arrow-rotate-right text-lg group-hover:rotate-180 transition-transform";
@@ -766,6 +843,7 @@
             }
         }
 
+        // ---------- Download ----------
         downloadBtn.onclick = () => {
             if (!generatedBlobUrl) return;
 
