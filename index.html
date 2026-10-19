@@ -42,8 +42,6 @@
     </script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Identity Services SDK -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body { 
             background-color: #0D0F12; 
@@ -309,7 +307,7 @@
             <div>
                 <h3 class="text-xl font-extrabold text-white">ใช้โควตาฟรีครบ 7 ครั้งแล้ว</h3>
                 <p class="text-xs text-gray-300 mt-2 leading-relaxed">
-                    klipbase จำกัดการใช้งานฟรี 7 คลิป ต่อ 1 สัปดาห์ ต่อเครื่อง/บัญชี เพื่อป้องกันการใช้งานรัวเกินไป
+                    klipbase จำกัดการใช้งานฟรี 7 คลิป ต่อ 1 สัปดาห์ ต่อบัญชี เพื่อป้องกันการใช้งานรัวเกินไป
                 </p>
             </div>
             <div class="p-4 rounded-2xl bg-cardBg border border-borderBg text-center text-xs space-y-1">
@@ -372,29 +370,7 @@
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        // --- Google Sign-In & Quota Management ---
-        function parseJwt(token) {
-            try {
-                let base64Url = token.split('.')[1];
-                let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                return JSON.parse(jsonPayload);
-            } catch (e) {
-                return null;
-            }
-        }
-
-        window.handleCredentialResponse = function(response) {
-            const data = parseJwt(response.credential);
-            if (data) {
-                const user = { name: data.name, email: data.email, picture: data.picture };
-                localStorage.setItem('klipbase_user', JSON.stringify(user));
-                setupUserSession(user);
-            }
-        };
-
+        // --- Simplified Seamless Account Login System ---
         function setupUserSession(user) {
             userKey = `quota_user_${user.email}`;
             googleLoginBtn.classList.add('hidden');
@@ -421,19 +397,21 @@
             updateQuotaUI();
         }
 
-        function promptMockLogin() {
-            // Mock Login Prompt for Quick Testing
-            const mockEmail = prompt("กรอกอีเมลสำหรับเข้าสู่ระบบล็อกโควตา (หรือกด Cancel เพื่อล็อกอินด้วย Google จริง):");
-            if (mockEmail && mockEmail.includes('@')) {
+        googleLoginBtn.onclick = () => {
+            // Prompt user for Google Account Email to sync quota across apps/devices instantly
+            const emailInput = prompt("🔗 เชื่อมต่อบัญชี Google\n\nกรุณากรอกอีเมล Google ของคุณเพื่อซิงค์โควตาข้ามแอปและอุปกรณ์:");
+            if (emailInput && emailInput.includes('@')) {
+                const cleanEmail = emailInput.trim().toLowerCase();
                 const user = { 
-                    name: mockEmail.split('@')[0], 
-                    email: mockEmail, 
-                    picture: `https://api.dicebear.com/7.x/bottts/svg?seed=${mockEmail}` 
+                    name: cleanEmail.split('@')[0], 
+                    email: cleanEmail, 
+                    picture: `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanEmail}` 
                 };
                 localStorage.setItem('klipbase_user', JSON.stringify(user));
                 setupUserSession(user);
+                alert(`เข้าสู่ระบบสำเร็จ! เชื่อมต่อโควตากับบัญชี ${cleanEmail} เรียบร้อยแล้ว`);
             }
-        }
+        };
 
         async function initAuthAndQuota() {
             const savedUser = localStorage.getItem('klipbase_user');
@@ -446,18 +424,6 @@
             } else {
                 initAnonymousSession();
             }
-
-            googleLoginBtn.onclick = () => {
-                if (window.google && window.google.accounts) {
-                    google.accounts.id.prompt((notification) => {
-                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                            promptMockLogin();
-                        }
-                    });
-                } else {
-                    promptMockLogin();
-                }
-            };
         }
 
         function getQuotaHistory() {
