@@ -26,30 +26,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- FingerprintJS v3 CDN -->
     <script src="https://openfpcdn.io/fingerprintjs/v3"></script>
+    <!-- FFmpeg WASM CDN -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/util.js"></script>
     <style>
-        body {
-            background-color: #0D0F12;
-            color: #E2E8F0;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-        .glass-card {
-            background: rgba(22, 25, 32, 0.8);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .gradient-btn {
-            background: linear-gradient(135deg, #25F4EE 0%, #FE2C55 100%);
-            transition: all 0.3s ease;
-        }
-        .gradient-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-        .gradient-btn:disabled {
-            opacity: 0.4;
-            transform: none;
-            cursor: not-allowed;
-        }
+        body { background-color: #0D0F12; color: #E2E8F0; font-family: system-ui, -apple-system, sans-serif; }
+        .glass-card { background: rgba(22, 25, 32, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .gradient-btn { background: linear-gradient(135deg, #25F4EE 0%, #FE2C55 100%); transition: all 0.3s ease; }
+        .gradient-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .gradient-btn:disabled { opacity: 0.4; transform: none; cursor: not-allowed; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between p-4 md:p-8">
@@ -62,12 +47,10 @@
             </div>
             <div>
                 <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                    TikTok HD Patcher
+                    TikTok HD Patcher 
                     <span class="text-xs px-2 py-0.5 rounded-full bg-tiktokRed/20 text-tiktokRed border border-tiktokRed/30">1080p 60FPS</span>
                 </h1>
-                <p class="text-xs text-gray-400">
-                    ป้องกันการโดนบีบอัดไฟล์วิดีโอคุณภาพสูงจาก TikTok
-                </p>
+                <p class="text-xs text-gray-400">ป้องกันการโดนบีบอัดไฟล์วิดีโอคุณภาพสูงจาก TikTok</p>
             </div>
         </div>
         <div class="flex items-center gap-2">
@@ -84,19 +67,15 @@
 
         <!-- File Upload Area -->
         <div id="dropZone" class="glass-card rounded-2xl p-8 border-2 border-dashed border-borderBg hover:border-tiktokCyan/50 transition-all text-center cursor-pointer relative overflow-hidden group">
-            <input type="file" id="videoInput" accept="video/mp4,video/quicktime" class="hidden">
-
+            <input type="file" id="videoInput" accept="video/mp4,video/quicktime,video/*" class="hidden">
+            
             <div id="uploadPrompt" class="space-y-4">
                 <div class="w-16 h-16 rounded-full bg-cardBg border border-borderBg flex items-center justify-center mx-auto text-tiktokCyan text-2xl group-hover:scale-110 transition-transform">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
                 </div>
                 <div>
-                    <p class="text-base font-medium text-white">
-                        ลากไฟล์วิดีโอมาวางที่นี่ หรือ <span class="text-tiktokCyan underline">คลิกเพื่อเลือกไฟล์</span>
-                    </p>
-                    <p class="text-xs text-gray-400 mt-1">
-                        รองรับไฟล์ .MP4 หรือ .MOV (ความละเอียดแนะนำ 1080p, สูงสุด 60/120 FPS)
-                    </p>
+                    <p class="text-base font-medium text-white">ลากไฟล์วิดีโอมาวางที่นี่ หรือ <span class="text-tiktokCyan underline">คลิกเพื่อเลือกไฟล์</span></p>
+                    <p class="text-xs text-gray-400 mt-1">รองรับทุกไฟล์วิดีโอ (ระบบแปลงและจัดระเบียบโครงสร้างอัตโนมัติ)</p>
                 </div>
             </div>
 
@@ -106,14 +85,10 @@
                     <i class="fa-solid fa-file-video"></i>
                 </div>
                 <div>
-                    <p id="fileName" class="text-sm font-semibold text-white truncate max-w-md mx-auto">
-                        -
-                    </p>
-                    <p id="fileMeta" class="text-xs text-gray-400 mt-0.5">
-                        - MB • -
-                    </p>
+                    <p id="fileName" class="text-sm font-semibold text-white truncate max-w-md mx-auto">-</p>
+                    <p id="fileMeta" class="text-xs text-gray-400 mt-0.5">- MB • -</p>
                     <div id="resBadge" class="inline-block mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300">
-                        กำลังตรวจสอบความละเอียด...
+                        พร้อมประมวลผล
                     </div>
                 </div>
                 <button type="button" id="changeFileBtn" class="text-xs text-tiktokRed hover:underline mt-2">
@@ -135,27 +110,21 @@
                             <span class="font-semibold text-sm text-white">Variant 1</span>
                             <span class="text-[10px] bg-tiktokCyan/20 text-tiktokCyan px-2 py-0.5 rounded-full">แนะนำ</span>
                         </div>
-                        <p class="text-xs text-gray-400">
-                            Experimental method (duration64), โครงสร้างเมตาดาต้าแบบใหม่ล่าสุด
-                        </p>
+                        <p class="text-xs text-gray-400">Experimental method (duration64), โครงสร้างเมตาดาต้าแบบใหม่ล่าสุด</p>
                     </div>
                 </label>
                 <label class="cursor-pointer">
                     <input type="radio" name="variant" value="variant-2" class="peer hidden">
                     <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full">
                         <span class="font-semibold text-sm text-white block mb-1">Variant 2</span>
-                        <p class="text-xs text-gray-400">
-                            สำหรับอุปกรณ์หรือวิดีโอทั่วไป (Standard Metadata Patching)
-                        </p>
+                        <p class="text-xs text-gray-400">สำหรับอุปกรณ์หรือวิดีโอทั่วไป (Standard Metadata Patching)</p>
                     </div>
                 </label>
                 <label class="cursor-pointer">
                     <input type="radio" name="variant" value="variant-3" class="peer hidden">
                     <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full">
                         <span class="font-semibold text-sm text-white block mb-1">Variant 3</span>
-                        <p class="text-xs text-gray-400">
-                            ทางเลือกสำรอง หาก Variant 1 หรือ 2 ยังถูกบีบอัด
-                        </p>
+                        <p class="text-xs text-gray-400">ทางเลือกสำรอง หาก Variant 1 หรือ 2 ยังถูกบีบอัด</p>
                     </div>
                 </label>
             </div>
@@ -198,12 +167,8 @@
         <div id="errorCard" class="hidden glass-card rounded-2xl p-4 bg-red-500/10 border-red-500/30 text-red-400 text-xs flex items-center gap-3">
             <i class="fa-solid fa-triangle-exclamation text-lg"></i>
             <div>
-                <p class="font-bold">
-                    เกิดข้อผิดพลาด
-                </p>
-                <p id="errorText" class="text-red-300 mt-0.5">
-                    -
-                </p>
+                <p class="font-bold">เกิดข้อผิดพลาด</p>
+                <p id="errorText" class="text-red-300 mt-0.5">-</p>
             </div>
         </div>
 
@@ -212,35 +177,10 @@
     <!-- Footer Credit -->
     <footer class="max-w-4xl mx-auto w-full text-center py-6 text-xs text-gray-500 border-t border-borderBg/50 mt-8">
         <p>
-            Powered by <a href="https://compressbase.com" target="_blank" class="text-tiktokCyan hover:underline font-medium">CompressBase</a>
+            Powered by <a href="https://compressbase.com" target="_blank" class="text-tiktokCyan hover:underline font-medium">CompressBase</a> 
             • เครื่องมือนี้ช่วยปรับแต่ง Metadata วิดีโอเพื่อป้องกันการถูกบีบอัดภาพแตกบน TikTok
         </p>
     </footer>
-
-    <!-- Downscale Modal Prompt -->
-    <div id="downscaleModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-card max-w-md w-full rounded-2xl p-6 space-y-4 border-tiktokCyan/40 text-center">
-            <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-xl">
-                <i class="fa-solid fa-compress"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold text-white">วิดีโอมีความละเอียดเกิน 1080p</h3>
-                <p class="text-xs text-gray-400 mt-1">
-                    TikTok ทำงานได้ดีที่สุดที่ความละเอียด 1080p ระบบจะทำการย่อขนาดไฟล์ (Downscale) ให้บนเครื่องของคุณโดยอัตโนมัติก่อนทำ Patching
-                </p>
-            </div>
-            <div class="p-3 rounded-xl bg-cardBg border border-borderBg text-left text-xs space-y-1">
-                <span class="text-tiktokCyan font-semibold">1080p MP4 Downscaler (Client-Side)</span>
-                <p class="text-gray-400">
-                    ประมวลผลด้วย H.264 รักษาอัตราเฟรมเรตเดิม ทำงานบนเบราว์เซอร์ของคุณ 100%
-                </p>
-            </div>
-            <div class="flex gap-2">
-                <button id="cancelDownscaleBtn" class="flex-1 py-2.5 rounded-xl bg-cardBg border border-borderBg text-gray-300 text-xs hover:bg-gray-800">ยกเลิก</button>
-                <button id="confirmDownscaleBtn" class="flex-1 py-2.5 rounded-xl gradient-btn text-black font-bold text-xs">ตกลง & ย่อไฟล์</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Quota Limit Modal -->
     <div id="quotaModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -256,15 +196,260 @@
             </div>
             <div class="p-3 rounded-xl bg-cardBg border border-borderBg text-center text-xs space-y-1">
                 <span class="text-gray-400">โควตารอบถัดไปจะรีเซ็ตในอีก</span>
-                <p id="timeToReset" class="text-tiktokCyan font-bold text-sm">
-                    -
-                </p>
+                <p id="timeToReset" class="text-tiktokCyan font-bold text-sm">-</p>
             </div>
             <button id="closeQuotaModalBtn" class="w-full py-2.5 rounded-xl bg-cardBg border border-borderBg text-white text-xs hover:bg-gray-800">รับทราบ</button>
         </div>
     </div>
 
-    <!-- เรียกใช้ไฟล์ JavaScript แยก -->
-    <script type="module" src="script.js"></script>
+    <!-- Application Script -->
+    <script type="module">
+        import { patchVideo } from 'https://compressbase.com/method-api/client.mjs';
+
+        const dropZone = document.getElementById('dropZone');
+        const videoInput = document.getElementById('videoInput');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileMeta = document.getElementById('fileMeta');
+        const resBadge = document.getElementById('resBadge');
+        const changeFileBtn = document.getElementById('changeFileBtn');
+        const patchBtn = document.getElementById('patchBtn');
+        const statusCard = document.getElementById('statusCard');
+        const statusText = document.getElementById('statusText');
+        const statusPercent = document.getElementById('statusPercent');
+        const progressBar = document.getElementById('progressBar');
+        const resultCard = document.getElementById('resultCard');
+        const videoPreview = document.getElementById('videoPreview');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const errorCard = document.getElementById('errorCard');
+        const errorText = document.getElementById('errorText');
+        const quotaBadge = document.getElementById('quotaBadge');
+        const quotaText = document.getElementById('quotaText');
+        const quotaModal = document.getElementById('quotaModal');
+        const timeToReset = document.getElementById('timeToReset');
+        const closeQuotaModalBtn = document.getElementById('closeQuotaModalBtn');
+
+        let currentFile = null;
+        let visitorId = null;
+        let ffmpegInstance = null;
+
+        const MAX_QUOTA = 7;
+        const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+
+        // Initialize Fingerprint
+        async function initQuotaManager() {
+            try {
+                if (typeof FingerprintJS !== 'undefined') {
+                    const fp = await FingerprintJS.load();
+                    const result = await fp.get();
+                    visitorId = result.visitorId;
+                } else {
+                    throw new Error();
+                }
+            } catch (err) {
+                let fallback = localStorage.getItem('_fallback_device_id');
+                if (!fallback) {
+                    fallback = 'dev_' + Math.random().toString(36).substring(2, 12);
+                    localStorage.setItem('_fallback_device_id', fallback);
+                }
+                visitorId = fallback;
+            }
+            updateQuotaUI();
+        }
+
+        function getQuotaHistory() {
+            if (!visitorId) return [];
+            const data = localStorage.getItem(`quota_${visitorId}`);
+            if (!data) return [];
+            const timestamps = JSON.parse(data);
+            const now = Date.now();
+            return timestamps.filter(ts => (now - ts) < WEEK_IN_MS);
+        }
+
+        function updateQuotaUI() {
+            const history = getQuotaHistory();
+            const used = history.length;
+            const remaining = Math.max(0, MAX_QUOTA - used);
+            quotaText.textContent = `${remaining}/${MAX_QUOTA}`;
+            quotaBadge.classList.remove('hidden');
+            return remaining;
+        }
+
+        function recordUsage() {
+            const history = getQuotaHistory();
+            history.push(Date.now());
+            localStorage.setItem(`quota_${visitorId}`, JSON.stringify(history));
+            updateQuotaUI();
+        }
+
+        function getResetTimeString() {
+            const history = getQuotaHistory();
+            if (history.length === 0) return "0 ชั่วโมง";
+            const oldest = Math.min(...history);
+            const resetTime = oldest + WEEK_IN_MS;
+            const diffMs = resetTime - Date.now();
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const days = Math.floor(hours / 24);
+            const remHours = hours % 24;
+            if (days > 0) return `${days} วัน ${remHours} ชั่วโมง`;
+            return `${hours} ชั่วโมง`;
+        }
+
+        initQuotaManager();
+
+        dropZone.onclick = () => videoInput.click();
+        videoInput.onchange = (e) => handleFileSelect(e.target.files[0]);
+        
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('border-tiktokCyan'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('border-tiktokCyan');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-tiktokCyan');
+            if (e.dataTransfer.files.length) handleFileSelect(e.dataTransfer.files[0]);
+        };
+
+        changeFileBtn.onclick = (e) => {
+            e.stopPropagation();
+            resetState();
+        };
+
+        function resetState() {
+            currentFile = null;
+            videoInput.value = '';
+            uploadPrompt.classList.remove('hidden');
+            fileInfo.classList.add('hidden');
+            patchBtn.disabled = true;
+            resultCard.classList.add('hidden');
+            errorCard.classList.add('hidden');
+            statusCard.classList.add('hidden');
+        }
+
+        async function handleFileSelect(file) {
+            if (!file) return;
+            if (!file.type.startsWith('video/')) {
+                showError("กรุณาเลือกไฟล์วิดีโอเท่านั้น");
+                return;
+            }
+
+            currentFile = file;
+            fileName.textContent = file.name;
+            fileMeta.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB • ${file.type}`;
+            
+            uploadPrompt.classList.add('hidden');
+            fileInfo.classList.remove('hidden');
+            errorCard.classList.add('hidden');
+            patchBtn.disabled = false;
+        }
+
+        // Initialize FFmpeg on demand
+        async function getFFmpeg() {
+            if (ffmpegInstance) return ffmpegInstance;
+            const { FFmpeg } = FFmpegWASM;
+            const ffmpeg = new FFmpeg();
+            
+            const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+            await ffmpeg.load({
+                coreURL: await FFmpegUtil.toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                wasmURL: await FFmpegUtil.toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+            });
+            ffmpegInstance = ffmpeg;
+            return ffmpegInstance;
+        }
+
+        patchBtn.onclick = async () => {
+            const remainingQuota = updateQuotaUI();
+            if (remainingQuota <= 0) {
+                timeToReset.textContent = getResetTimeString();
+                quotaModal.classList.remove('hidden');
+                return;
+            }
+            executePatchProcess();
+        };
+
+        closeQuotaModalBtn.onclick = () => quotaModal.classList.add('hidden');
+
+        async function executePatchProcess() {
+            patchBtn.disabled = true;
+            statusCard.classList.remove('hidden');
+            errorCard.classList.add('hidden');
+            resultCard.classList.add('hidden');
+
+            try {
+                statusText.textContent = "กำลังโหลดระบบแปลงไฟล์ (FFmpeg)...";
+                progressBar.style.width = "10%";
+                statusPercent.textContent = "10%";
+
+                const ffmpeg = await getFFmpeg();
+
+                statusText.textContent = "Step 1/2: กำลังปรับโครงสร้างและย่อความละเอียดให้พอดี 1080p...";
+                progressBar.style.width = "30%";
+                statusPercent.textContent = "30%";
+
+                const inputName = 'input_video.mp4';
+                const outputName = 'output_processed.mp4';
+                
+                const fileData = await FFmpegUtil.fetchFile(currentFile);
+                await ffmpeg.writeFile(inputName, fileData);
+
+                // ใช้คำสั่ง FFmpeg บีบอัดและปรับความละเอียดแนวตั้งให้พอดี 1080p (1080:1920) 60fps พร้อมเคลียร์โครงสร้าง MP4 Box ให้สมบูรณ์แบบ
+                await ffmpeg.exec([
+                    '-i', inputName,
+                    '-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2',
+                    '-r', '60',
+                    '-c:v', 'libx264',
+                    '-preset', 'fast',
+                    '-crf', '23',
+                    '-c:a', 'aac',
+                    '-movflags', '+faststart',
+                    outputName
+                ]);
+
+                statusText.textContent = "Step 2/2: กำลังปรับแต่ง Metadata (CompressBase API)...";
+                progressBar.style.width = "75%";
+                statusPercent.textContent = "75%";
+
+                const data = await ffmpeg.readFile(outputName);
+                const processedBlob = new Blob([data.buffer], { type: 'video/mp4' });
+                const processedFile = new File([processedBlob], currentFile.name, { type: 'video/mp4' });
+
+                const selectedVariant = document.querySelector('input[name="variant"]:checked').value;
+
+                const output = await patchVideo(processedFile, {
+                    postingDevice: selectedVariant,
+                    signal: AbortSignal.timeout(180000),
+                    onStatus: (msg) => {
+                        statusText.textContent = `กำลังประมวลผล: ${msg}`;
+                    }
+                });
+
+                progressBar.style.width = "100%";
+                statusPercent.textContent = "100%";
+
+                recordUsage();
+
+                const outputUrl = URL.createObjectURL(output);
+                videoPreview.src = outputUrl;
+                downloadBtn.href = outputUrl;
+                downloadBtn.download = `HD_${currentFile.name}`;
+
+                setTimeout(() => {
+                    statusCard.classList.add('hidden');
+                    resultCard.classList.remove('hidden');
+                }, 500);
+
+            } catch (err) {
+                statusCard.classList.add('hidden');
+                showError(err.message || "เกิดข้อผิดพลาดในการประมวลผลวิดีโอ");
+            } finally {
+                patchBtn.disabled = false;
+            }
+        }
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorCard.classList.remove('hidden');
+        }
+    </script>
 </body>
 </html>
