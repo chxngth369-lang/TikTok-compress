@@ -40,6 +40,8 @@
             }
         }
     </script>
+    <!-- Google Identity Services (ระบบล็อกอิน Google) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -114,7 +116,7 @@
                     <span>เข้าสู่ระบบด้วย Google</span>
                 </button>
                 <div id="userProfile" class="hidden flex items-center gap-2.5 bg-cardBg px-3 py-1.5 rounded-xl border border-borderBg shadow-lg">
-                    <img id="userAvatar" src="" alt="Avatar" class="w-7 h-7 rounded-full border border-tiktokCyan">
+                    <img id="userAvatar" src="" alt="Avatar" referrerpolicy="no-referrer" class="w-7 h-7 rounded-full border border-tiktokCyan">
                     <span id="userName" class="text-xs font-bold text-white max-w-[100px] truncate"></span>
                     <button id="logoutBtn" title="ออกจากระบบ" class="text-gray-400 hover:text-tiktokRed text-xs ml-1 cursor-pointer">
                         <i class="fa-solid fa-right-from-bracket"></i>
@@ -370,7 +372,60 @@
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        // --- Simplified Seamless Account Login System ---
+        // ===================== Google Login (ของจริง) =====================
+        const GOOGLE_CLIENT_ID = 'ใส่_CLIENT_ID_ของคุณ.apps.googleusercontent.com';
+        let tokenClient = null;
+        let googleAccessToken = null;
+
+        function initGoogleAuth() {
+            // รอให้สคริปต์ Google โหลดเสร็จก่อน
+            if (!window.google?.accounts?.oauth2) {
+                setTimeout(initGoogleAuth, 200);
+                return;
+            }
+
+            tokenClient = window.google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'openid email profile',
+                callback: async (resp) => {
+                    if (resp.error) {
+                        console.error('Google login error:', resp);
+                        alert('เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+                        return;
+                    }
+
+                    googleAccessToken = resp.access_token;
+
+                    try {
+                        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                            headers: { Authorization: `Bearer ${resp.access_token}` }
+                        });
+                        if (!res.ok) throw new Error('โหลดข้อมูลผู้ใช้ไม่สำเร็จ');
+                        const info = await res.json();
+
+                        const email = info.email.toLowerCase();
+                        const user = {
+                            name: info.name || email.split('@')[0],
+                            email: email,
+                            picture: info.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${email}`
+                        };
+
+                        localStorage.setItem('klipbase_user', JSON.stringify(user));
+                        setupUserSession(user);
+                    } catch (err) {
+                        console.error(err);
+                        alert('ไม่สามารถดึงข้อมูลบัญชี Google ได้');
+                    }
+                },
+                error_callback: (err) => {
+                    // เกิดเมื่อผู้ใช้ปิดหน้าต่างป๊อปอัปหรือป๊อปอัปถูกบล็อก
+                    console.warn('Google popup closed/blocked:', err);
+                }
+            });
+        }
+
+        initGoogleAuth();
+
         function setupUserSession(user) {
             userKey = `quota_user_${user.email}`;
             googleLoginBtn.classList.add('hidden');
@@ -380,7 +435,19 @@
             updateQuotaUI();
         }
 
+        googleLoginBtn.onclick = () => {
+            if (!tokenClient) {
+                alert('กำลังโหลดระบบ Google... กรุณาลองอีกครั้งในอีกสักครู่');
+                return;
+            }
+            tokenClient.requestAccessToken({ prompt: 'select_account' });
+        };
+
         logoutBtn.onclick = () => {
+            if (googleAccessToken && window.google?.accounts?.oauth2) {
+                window.google.accounts.oauth2.revoke(googleAccessToken, () => {});
+            }
+            googleAccessToken = null;
             localStorage.removeItem('klipbase_user');
             userProfile.classList.add('hidden');
             googleLoginBtn.classList.remove('hidden');
@@ -397,22 +464,6 @@
             updateQuotaUI();
         }
 
-        googleLoginBtn.onclick = () => {
-            // Prompt user for Google Account Email to sync quota across apps/devices instantly
-            const emailInput = prompt("🔗 เชื่อมต่อบัญชี Google\n\nกรุณากรอกอีเมล Google ของคุณเพื่อซิงค์โควตาข้ามแอปและอุปกรณ์:");
-            if (emailInput && emailInput.includes('@')) {
-                const cleanEmail = emailInput.trim().toLowerCase();
-                const user = { 
-                    name: cleanEmail.split('@')[0], 
-                    email: cleanEmail, 
-                    picture: `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanEmail}` 
-                };
-                localStorage.setItem('klipbase_user', JSON.stringify(user));
-                setupUserSession(user);
-                alert(`เข้าสู่ระบบสำเร็จ! เชื่อมต่อโควตากับบัญชี ${cleanEmail} เรียบร้อยแล้ว`);
-            }
-        };
-
         async function initAuthAndQuota() {
             const savedUser = localStorage.getItem('klipbase_user');
             if (savedUser) {
@@ -425,6 +476,7 @@
                 initAnonymousSession();
             }
         }
+        // ===================================================================
 
         function getQuotaHistory() {
             if (!userKey) return [];
