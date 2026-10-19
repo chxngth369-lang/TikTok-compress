@@ -318,11 +318,11 @@
         </div>
     </div>
 
-    <!-- Application Script with Firebase (Popup Auth Mode) -->
+    <!-- Application Script with Firebase (Redirect Mode for Mobile/iPad) -->
     <script type="module">
         import { patchVideo } from 'https://compressbase.com/method-api/client.mjs';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // ==========================================
@@ -394,6 +394,12 @@
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
+        // จัดการผลลัพธ์หลัง Redirect กลับมาจากหน้า Google Login
+        getRedirectResult(auth).catch((error) => {
+            console.error("Redirect Auth Error:", error);
+            showError("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+        });
+
         // --- Firebase Auth & Firestore Quota Management ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -413,8 +419,8 @@
 
         googleLoginBtn.onclick = async () => {
             try {
-                // กลับมาใช้แบบ Popup พร้อมดัก Error โชว์ทันทีถ้ามีปัญหา
-                await signInWithPopup(auth, googleProvider);
+                // เปลี่ยนมาใช้ Redirect ป้องกันหน้าขาวบน iPad/Mobile 100%
+                await signInWithRedirect(auth, googleProvider);
             } catch (err) {
                 console.error("Login Error:", err);
                 showError("เข้าสู่ระบบไม่สำเร็จ: " + err.message);
