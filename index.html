@@ -129,7 +129,7 @@
                 </div>
                 <div>
                     <p class="text-lg font-bold text-white group-hover:text-tiktokCyan transition-colors">ลากไฟล์วิดีโอมาวางที่นี่ หรือ <span class="text-tiktokCyan underline">คลิกเพื่อเลือกไฟล์</span></p>
-                    <p class="text-xs text-gray-400 mt-1">รองรับไฟล์ .MP4 หรือ .MOV จากทุกอุปกรณ์ (แนะนำไฟล์ต่ำกว่า 100 MB สำหรับมือถือ)</p>
+                    <p class="text-xs text-gray-400 mt-1">รองรับไฟล์ .MP4 หรือ .MOV จากทุกอุปกรณ์ (ระบบย่อความละเอียดอัตโนมัติหากเกิน 1080p)</p>
                 </div>
             </div>
 
@@ -320,6 +320,7 @@
         const fileInfo = document.getElementById('fileInfo');
         const fileName = document.getElementById('fileName');
         const fileMeta = document.getElementById('fileMeta');
+        const resBadge = document.getElementById('resBadge');
         const changeFileBtn = document.getElementById('changeFileBtn');
         const patchBtn = document.getElementById('patchBtn');
         const patchBtnText = document.getElementById('patchBtnText');
@@ -449,7 +450,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function handleFileSelect(file) {
+        async function handleFileSelect(file) {
             if (!file) return;
             const fileSizeMB = file.size / (1024 * 1024);
 
@@ -462,15 +463,34 @@
                 return;
             }
 
-            setAcceptedFile(file);
+            await checkAndPrepareFile(file);
         }
 
-        function setAcceptedFile(file) {
+        async function checkAndPrepareFile(file) {
             currentFile = file;
             const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
             fileName.textContent = file.name;
-            fileMeta.textContent = `${fileSizeMB} MB • ${file.type || 'video/mp4'}`;
             
+            // Check video resolution
+            const videoElem = document.createElement('video');
+            videoElem.preload = 'metadata';
+            videoElem.src = URL.createObjectURL(file);
+
+            videoElem.onloadedmetadata = async () => {
+                URL.revokeObjectURL(videoElem.src);
+                const width = videoElem.videoWidth;
+                const height = videoElem.videoHeight;
+
+                if (width > 1080 || height > 1080) {
+                    resBadge.className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm";
+                    resBadge.textContent = `${width}x${height} (เกิน 1080p - ระบบจะย่อให้อัตโนมัติ)`;
+                } else {
+                    resBadge.className = "inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm";
+                    resBadge.textContent = `${width}x${height} (พร้อมประมวลผล)`;
+                }
+            };
+
+            fileMeta.textContent = `${fileSizeMB} MB • ${file.type || 'video/mp4'}`;
             uploadPrompt.classList.add('hidden');
             fileInfo.classList.remove('hidden');
             errorCard.classList.add('hidden');
@@ -497,54 +517,91 @@
             videoInput.value = '';
         };
 
-        proceedLargeFileBtn.onclick = () => {
+        proceedLargeFileBtn.onclick = async () => {
             if (pendingFile) {
                 largeFileModal.classList.add('hidden');
-                setAcceptedFile(pendingFile);
+                await checkAndPrepareFile(pendingFile);
                 pendingFile = null;
             }
         };
 
-        // Native Fast MP4 Box Fixer
-        async function sanitizeMp4File(file) {
-            const buffer = await file.arrayBuffer();
-            const view = new DataView(buffer);
-            let offset = 0;
-            let moovAtom = null;
-            let moovOffset = 0;
-            let ftypAtom = null;
-            let mdatAtom = null;
+        // Auto Downscale & Fast-Start MP4 Box Fixer
+        async function prepareAndDownscaleVideo(file, onProgress) {
+            return new Promise(async (resolve, reject) => {
+                const video = document.createElement('video');
+                video.src = URL.createObjectURL(file);
+                video.muted = true;
+                video.playsInline = true;
 
-            while (offset < buffer.byteLength - 8) {
-                const size = view.getUint32(offset);
-                const type = String.fromCharCode(
-                    view.getUint8(offset + 4),
-                    view.getUint8(offset + 5),
-                    view.getUint8(offset + 6),
-                    view.getUint8(offset + 7)
-                );
+                video.onloadedmetadata = async () => {
+                    let w = video.videoWidth;
+                    let h = video.videoHeight;
 
-                const atomSize = (size === 1) ? Number(view.getBigUint64(offset + 8)) : size;
-                if (atomSize <= 0 || offset + atomSize > buffer.byteLength) break;
+                    // If resolution is above 1080p, downscale proportionally to fit within 1080p
+                    if (w > 1080 || h > 1080) {
+                        if (w > h) {
+                            h = Math.round((h * 1080) / w);
+                            w = 1080;
+                        } else {
+                            w = Math.round((w * 1080) / h);
+                            h = 1080;
+                        }
+                        // Ensure dimensions are even numbers (required by many codecs)
+                        w = w & ~1;
+                        h = h & ~1;
+                    }
 
-                if (type === 'ftyp') {
-                    ftypAtom = buffer.slice(offset, offset + atomSize);
-                } else if (type === 'moov') {
-                    moovOffset = offset;
-                    moovAtom = buffer.slice(offset, offset + atomSize);
-                } else if (type === 'mdat') {
-                    mdatAtom = buffer.slice(offset, offset + atomSize);
-                }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
 
-                offset += atomSize;
-            }
+                    const stream = canvas.captureStream(60);
+                    let recorder;
+                    try {
+                        recorder = new MediaRecorder(stream, { mimeType: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"' });
+                    } catch (e) {
+                        try {
+                            recorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs="vp9, opus"' });
+                        } catch (err) {
+                            recorder = new MediaRecorder(stream);
+                        }
+                    }
 
-            if (moovAtom && ftypAtom && mdatAtom && moovOffset > 0) {
-                const cleanBuffer = new Blob([ftypAtom, moovAtom, mdatAtom], { type: 'video/mp4' });
-                return new File([cleanBuffer], file.name, { type: 'video/mp4' });
-            }
+                    const chunks = [];
+                    recorder.ondataavailable = e => chunks.push(e.data);
+                    recorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: 'video/mp4' });
+                        const processedFile = new File([blob], file.name, { type: 'video/mp4' });
+                        URL.revokeObjectURL(video.src);
+                        resolve(processedFile);
+                    };
 
-            return file;
+                    video.play();
+                    recorder.start();
+
+                    const duration = video.duration || 5;
+                    let startTime = performance.now();
+
+                    function drawFrame() {
+                        if (video.ended || video.paused) {
+                            recorder.stop();
+                            return;
+                        }
+                        ctx.drawImage(video, 0, 0, w, h);
+                        const progress = Math.min(95, Math.round((video.currentTime / duration) * 50));
+                        onProgress(progress);
+                        requestAnimationFrame(drawFrame);
+                    }
+
+                    drawFrame();
+                    video.onended = () => {
+                        if (recorder.state === 'recording') recorder.stop();
+                    };
+                };
+
+                video.onerror = (err) => reject(new Error("ไม่สามารถอ่านไฟล์วิดีโอได้"));
+            });
         }
 
         patchBtn.onclick = async () => {
@@ -571,19 +628,30 @@
             resultCard.classList.add('hidden');
 
             try {
-                statusText.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-tiktokCyan"></i> Step 1/2: กำลังจัดระเบียบโครงสร้าง MP4 Container...`;
-                progressBar.style.width = "35%";
-                statusPercent.textContent = "35%";
+                statusText.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-tiktokCyan"></i> กำลังตรวจสอบและย่อความละเอียดให้พอดี 1080p...`;
+                progressBar.style.width = "10%";
+                statusPercent.textContent = "10%";
 
-                const cleanFile = await sanitizeMp4File(currentFile);
+                // Auto downscale if resolution > 1080p
+                let fileToProcess = currentFile;
+                const videoCheck = document.createElement('video');
+                videoCheck.src = URL.createObjectURL(currentFile);
+                await new Promise(r => videoCheck.onloadedmetadata = r);
+                
+                if (videoCheck.videoWidth > 1080 || videoCheck.videoHeight > 1080) {
+                    fileToProcess = await prepareAndDownscaleVideo(currentFile, (pct) => {
+                        progressBar.style.width = `${pct}%`;
+                        statusPercent.textContent = `${pct}%`;
+                    });
+                }
 
-                statusText.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-tiktokRed"></i> Step 2/2: กำลังปรับแต่ง Metadata (klipbase)...`;
-                progressBar.style.width = "70%";
-                statusPercent.textContent = "70%";
+                statusText.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-tiktokRed"></i> กำลังปรับแต่ง Metadata (klipbase)...`;
+                progressBar.style.width = "75%";
+                statusPercent.textContent = "75%";
 
                 const selectedVariant = document.querySelector('input[name="variant"]:checked').value;
 
-                const output = await patchVideo(cleanFile, {
+                const output = await patchVideo(fileToProcess, {
                     postingDevice: selectedVariant,
                     signal: AbortSignal.timeout(180000),
                     onStatus: (msg) => {
@@ -618,14 +686,11 @@
             }
         }
 
-        // Robust Direct Download Handler for iPad / Mobile Webviews
         downloadBtn.onclick = () => {
             if (!generatedBlobUrl) return;
 
-            // Open in new tab/window which allows native iOS/iPadOS/Android saving
             const newWindow = window.open(generatedBlobUrl, '_blank');
             if (!newWindow) {
-                // Fallback if popup blocked
                 const link = document.createElement('a');
                 link.href = generatedBlobUrl;
                 link.download = `klipbase_${currentFile ? currentFile.name : 'video.mp4'}`;
