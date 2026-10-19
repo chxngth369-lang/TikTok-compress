@@ -318,15 +318,15 @@
         </div>
     </div>
 
-    <!-- Application Script with Firebase (Redirect Auth for Mobile Stability) -->
+    <!-- Application Script with Firebase (Popup Auth Mode) -->
     <script type="module">
         import { patchVideo } from 'https://compressbase.com/method-api/client.mjs';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // ==========================================
-        // ⚙️ Firebase Config (ใส่ค่าของคุณเรียบร้อยแล้ว)
+        // ⚙️ Firebase Config
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCVQA4lxSPZFh9QqxY7wMR5kwzxBwu2t-c",
@@ -394,12 +394,6 @@
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        // ตรวจสอบผลลัพธ์หลังจาก Google Redirect กลับมาที่หน้าเว็บ
-        getRedirectResult(auth).catch((error) => {
-            console.error("Redirect Auth Error:", error);
-            showError("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
-        });
-
         // --- Firebase Auth & Firestore Quota Management ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -419,11 +413,11 @@
 
         googleLoginBtn.onclick = async () => {
             try {
-                // ใช้แบบ Redirect แทน Popup เพื่อป้องกันจอขาวบนมือถือ/iPad
-                await signInWithRedirect(auth, googleProvider);
+                // กลับมาใช้แบบ Popup พร้อมดัก Error โชว์ทันทีถ้ามีปัญหา
+                await signInWithPopup(auth, googleProvider);
             } catch (err) {
                 console.error("Login Error:", err);
-                showError("ไม่สามารถเข้าสู่ระบบด้วย Google ได้: " + err.message);
+                showError("เข้าสู่ระบบไม่สำเร็จ: " + err.message);
             }
         };
 
