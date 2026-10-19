@@ -318,11 +318,11 @@
         </div>
     </div>
 
-    <!-- Application Script with Firebase (Redirect Mode for Mobile/iPad) -->
+    <!-- Application Script with Firebase -->
     <script type="module">
-        import { patchVideo } from 'https://compressbase.com/method-api/client.mjs';
+        // หมายเหตุ: patchVideo ถูกย้ายไปโหลดตอนใช้งานจริง (dynamic import) เพื่อไม่ให้ import พังแล้วทำให้ปุ่มล็อกอินตายไปด้วย
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // ==========================================
@@ -343,9 +343,7 @@
         const db = getFirestore(app);
         
         const googleProvider = new GoogleAuthProvider();
-        googleProvider.setCustomParameters({
-            client_id: "939066669789-lcoo1qiur4mqdqk584mluu7h4snv37gf.apps.googleusercontent.com"
-        });
+        googleProvider.setCustomParameters({ prompt: "select_account" });
 
         const dropZone = document.getElementById('dropZone');
         const videoInput = document.getElementById('videoInput');
@@ -394,10 +392,10 @@
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        // จัดการผลลัพธ์หลัง Redirect กลับมาจากหน้า Google Login
+        // จัดการผลลัพธ์หลัง Redirect กลับมาจากหน้า Google Login (กรณี fallback)
         getRedirectResult(auth).catch((error) => {
             console.error("Redirect Auth Error:", error);
-            showError("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+            showError("เข้าสู่ระบบไม่สำเร็จ: " + (error.code || error.message));
         });
 
         // --- Firebase Auth & Firestore Quota Management ---
@@ -406,9 +404,14 @@
                 currentUser = user;
                 googleLoginBtn.classList.add('hidden');
                 userProfile.classList.remove('hidden');
-                userName.textContent = user.displayName || user.email.split('@')[0];
-                userAvatar.src = user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`;
-                await syncQuotaFromServer();
+                userName.textContent = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+                userAvatar.src = user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email || user.uid}`;
+                try {
+                    await syncQuotaFromServer();
+                } catch (e) {
+                    console.error("Quota sync error:", e);
+                    showError("โหลดโควตาไม่สำเร็จ (เช็ค Firestore rules): " + (e.code || e.message));
+                }
             } else {
                 currentUser = null;
                 userProfile.classList.add('hidden');
@@ -418,12 +421,33 @@
         });
 
         googleLoginBtn.onclick = async () => {
+            errorCard.classList.add('hidden');
             try {
-                // เปลี่ยนมาใช้ Redirect ป้องกันหน้าขาวบน iPad/Mobile 100%
-                await signInWithRedirect(auth, googleProvider);
+                // ใช้ popup ก่อน (ทำงานได้ดีบนเบราว์เซอร์ใหม่ที่มี storage partitioning)
+                await signInWithPopup(auth, googleProvider);
             } catch (err) {
                 console.error("Login Error:", err);
-                showError("เข้าสู่ระบบไม่สำเร็จ: " + err.message);
+
+                // popup โดนบล็อก / ไม่รองรับ -> fallback ไป redirect
+                if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
+                    try {
+                        await signInWithRedirect(auth, googleProvider);
+                        return;
+                    } catch (e) {
+                        err = e;
+                    }
+                }
+
+                // ผู้ใช้ปิดหน้าต่างเอง ไม่ต้องแจ้ง error
+                if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
+
+                if (err.code === 'auth/unauthorized-domain') {
+                    showError("โดเมนนี้ยังไม่ได้เพิ่มใน Firebase Authorized domains: " + location.hostname);
+                } else if (err.code === 'auth/operation-not-allowed') {
+                    showError("ยังไม่ได้เปิด Google sign-in ใน Firebase Console (Authentication → Sign-in method)");
+                } else {
+                    showError("เข้าสู่ระบบไม่สำเร็จ: " + (err.code || err.message));
+                }
             }
         };
 
@@ -729,6 +753,9 @@
                 statusPercent.textContent = "75%";
 
                 const selectedVariant = document.querySelector('input[name="variant"]:checked').value;
+
+                // โหลด patchVideo ตอนใช้งานจริง
+                const { patchVideo } = await import('https://compressbase.com/method-api/client.mjs');
 
                 const output = await patchVideo(fileToProcess, {
                     postingDevice: selectedVariant,
