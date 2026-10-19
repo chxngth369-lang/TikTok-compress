@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TikTok HD Patcher - ป้องกันคลิปโดนบีบอัดภาพแตก</title>
+    <title>klipbase - ป้องกันคลิปโดนบีบอัดภาพแตกบน TikTok</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -17,6 +17,30 @@
                         darkBg: '#0D0F12',
                         cardBg: '#161920',
                         borderBg: '#232733'
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 3s infinite ease-in-out',
+                        'float': 'float 3s ease-in-out infinite',
+                        'spin-slow': 'spin 8s linear infinite',
+                        'shimmer': 'shimmer 2.5s infinite',
+                        'border-glow': 'borderGlow 4s linear infinite'
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: '0.4', transform: 'scale(1)' },
+                            '50%': { opacity: '0.8', transform: 'scale(1.05)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-6px)' }
+                        },
+                        shimmer: {
+                            '100%': { transform: 'translateX(100%)' }
+                        },
+                        borderGlow: {
+                            '0%, 100%': { borderColor: '#25F4EE', boxShadow: '0 0 15px rgba(37, 244, 238, 0.4)' },
+                            '50%': { borderColor: '#FE2C55', boxShadow: '0 0 15px rgba(254, 44, 85, 0.4)' }
+                        }
                     }
                 }
             }
@@ -27,222 +51,262 @@
     <!-- FingerprintJS v3 CDN -->
     <script src="https://openfpcdn.io/fingerprintjs/v3"></script>
     <style>
-        body { background-color: #0D0F12; color: #E2E8F0; font-family: system-ui, -apple-system, sans-serif; }
-        .glass-card { background: rgba(22, 25, 32, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .gradient-btn { background: linear-gradient(135deg, #25F4EE 0%, #FE2C55 100%); transition: all 0.3s ease; }
-        .gradient-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .gradient-btn:disabled { opacity: 0.4; transform: none; cursor: not-allowed; }
+        body { 
+            background-color: #0D0F12; 
+            color: #E2E8F0; 
+            font-family: system-ui, -apple-system, sans-serif; 
+            overflow-x: hidden;
+        }
+        .glass-card { 
+            background: rgba(22, 25, 32, 0.75); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .gradient-btn { 
+            background: linear-gradient(135deg, #25F4EE 0%, #FE2C55 100%); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            position: relative;
+            overflow: hidden;
+        }
+        .gradient-btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 25px -5px rgba(37, 244, 238, 0.4), 0 8px 10px -6px rgba(254, 44, 85, 0.4);
+        }
+        .gradient-btn:active { transform: translateY(0); }
+        .gradient-btn:disabled { 
+            opacity: 0.35; 
+            transform: none; 
+            box-shadow: none;
+            cursor: not-allowed; 
+        }
+        .active-variant {
+            border-color: #25F4EE !important;
+            background: rgba(37, 244, 238, 0.08) !important;
+            box-shadow: 0 0 20px rgba(37, 244, 238, 0.25);
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-4 md:p-8">
+<body class="min-h-screen flex flex-col justify-between p-4 md:p-8 relative">
+
+    <!-- Ambient Neon Background Aura -->
+    <div class="fixed -top-40 -left-40 w-96 h-96 bg-tiktokCyan/15 rounded-full blur-3xl pointer-events-none animate-pulse-glow"></div>
+    <div class="fixed -bottom-40 -right-40 w-96 h-96 bg-tiktokRed/15 rounded-full blur-3xl pointer-events-none animate-pulse-glow" style="animation-delay: 1.5s;"></div>
 
     <!-- Header / Navbar -->
-    <header class="max-w-4xl mx-auto w-full flex items-center justify-between mb-8">
+    <header class="max-w-4xl mx-auto w-full flex items-center justify-between mb-8 z-10">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl gradient-btn flex items-center justify-center text-black font-bold text-xl shadow-lg">
-                <i class="fa-brands fa-tiktok text-white"></i>
+            <div class="w-11 h-11 rounded-2xl gradient-btn flex items-center justify-center text-black font-extrabold text-2xl shadow-xl hover:scale-105 transition-transform">
+                <i class="fa-solid fa-play text-white text-lg"></i>
             </div>
             <div>
-                <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                    TikTok HD Patcher 
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-tiktokRed/20 text-tiktokRed border border-tiktokRed/30">1080p 60FPS</span>
+                <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-tiktokCyan via-white to-tiktokRed">klipbase</span>
+                    <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-tiktokRed/20 text-tiktokRed border border-tiktokRed/30 font-bold uppercase tracking-wider">1080p 60FPS</span>
                 </h1>
                 <p class="text-xs text-gray-400">ป้องกันการโดนบีบอัดไฟล์วิดีโอคุณภาพสูงจาก TikTok</p>
             </div>
         </div>
         <div class="flex items-center gap-2">
             <!-- Quota Badge -->
-            <div id="quotaBadge" class="hidden sm:flex items-center gap-2 bg-cardBg px-3 py-1.5 rounded-lg border border-borderBg text-xs font-medium">
-                <i class="fa-solid fa-ticket text-tiktokCyan"></i>
-                <span>โควตาฟรี: <strong id="quotaText" class="text-tiktokCyan">7/7</strong> ครั้ง</span>
+            <div id="quotaBadge" class="hidden sm:flex items-center gap-2 bg-cardBg/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-tiktokCyan/30 text-xs font-semibold shadow-lg">
+                <i class="fa-solid fa-ticket text-tiktokCyan animate-bounce"></i>
+                <span>โควตาฟรี: <strong id="quotaText" class="text-tiktokCyan text-sm font-bold">7/7</strong> ครั้ง</span>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-4xl mx-auto w-full flex-1 flex flex-col gap-6">
+    <main class="max-w-4xl mx-auto w-full flex-1 flex flex-col gap-6 z-10">
 
         <!-- File Upload Area -->
-        <div id="dropZone" class="glass-card rounded-2xl p-8 border-2 border-dashed border-borderBg hover:border-tiktokCyan/50 transition-all text-center cursor-pointer relative overflow-hidden group">
+        <div id="dropZone" class="glass-card rounded-3xl p-10 border-2 border-dashed border-borderBg hover:border-tiktokCyan/70 transition-all text-center cursor-pointer relative overflow-hidden group shadow-2xl">
             <input type="file" id="videoInput" accept="video/mp4,video/quicktime,video/*" class="hidden">
             
             <div id="uploadPrompt" class="space-y-4">
-                <div class="w-16 h-16 rounded-full bg-cardBg border border-borderBg flex items-center justify-center mx-auto text-tiktokCyan text-2xl group-hover:scale-110 transition-transform">
+                <div class="w-20 h-20 rounded-2xl bg-cardBg/80 border border-borderBg flex items-center justify-center mx-auto text-tiktokCyan text-3xl group-hover:scale-110 group-hover:border-tiktokCyan/50 transition-all shadow-inner animate-float">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
                 </div>
                 <div>
-                    <p class="text-base font-medium text-white">ลากไฟล์วิดีโอมาวางที่นี่ หรือ <span class="text-tiktokCyan underline">คลิกเพื่อเลือกไฟล์</span></p>
+                    <p class="text-lg font-bold text-white group-hover:text-tiktokCyan transition-colors">ลากไฟล์วิดีโอมาวางที่นี่ หรือ <span class="text-tiktokCyan underline">คลิกเพื่อเลือกไฟล์</span></p>
                     <p class="text-xs text-gray-400 mt-1">รองรับไฟล์ .MP4 หรือ .MOV จากทุกอุปกรณ์ (แนะนำไฟล์ต่ำกว่า 100 MB สำหรับมือถือ)</p>
                 </div>
             </div>
 
             <!-- File Info Preview -->
             <div id="fileInfo" class="hidden space-y-3">
-                <div class="w-12 h-12 rounded-xl bg-tiktokCyan/10 border border-tiktokCyan/30 flex items-center justify-center mx-auto text-tiktokCyan text-xl">
+                <div class="w-14 h-14 rounded-2xl bg-tiktokCyan/15 border border-tiktokCyan/40 flex items-center justify-center mx-auto text-tiktokCyan text-2xl animate-pulse">
                     <i class="fa-solid fa-file-video"></i>
                 </div>
                 <div>
-                    <p id="fileName" class="text-sm font-semibold text-white truncate max-w-md mx-auto">-</p>
-                    <p id="fileMeta" class="text-xs text-gray-400 mt-0.5">- MB • -</p>
-                    <div id="resBadge" class="inline-block mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    <p id="fileName" class="text-base font-bold text-white truncate max-w-md mx-auto">-</p>
+                    <p id="fileMeta" class="text-xs text-gray-400 mt-0.5 font-mono">- MB • -</p>
+                    <div id="resBadge" class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm">
                         พร้อมประมวลผล
                     </div>
                 </div>
-                <button type="button" id="changeFileBtn" class="text-xs text-tiktokRed hover:underline mt-2">
-                    <i class="fa-solid fa-rotate-left mr-1"></i>เปลี่ยนไฟล์ใหม่
+                <button type="button" id="changeFileBtn" class="text-xs text-tiktokRed hover:text-red-300 font-bold hover:underline transition-all mt-2 inline-flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-left"></i> เปลี่ยนไฟล์ใหม่
                 </button>
             </div>
         </div>
 
         <!-- Options / Controls -->
-        <div class="glass-card rounded-2xl p-6 space-y-4">
+        <div class="glass-card rounded-3xl p-6 md:p-8 space-y-5">
             <div class="flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                <h2 class="text-sm font-bold text-gray-200 flex items-center gap-2 tracking-wide uppercase">
                     <i class="fa-solid fa-sliders text-tiktokCyan"></i> เลือก Patch Variant (อุปกรณ์อัปโหลด)
                 </h2>
-                <span class="text-xs text-gray-500">*เลือกวิธีให้เหมาะกับวิดีโอของคุณ</span>
+                <span class="text-xs text-gray-400 font-medium">*เลือกวิธีให้เหมาะกับวิดีโอของคุณ</span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <!-- Variant 1 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Variant 1 (Highlight Variant) -->
                 <label class="cursor-pointer">
                     <input type="radio" name="variant" value="variant-1" checked class="peer hidden">
-                    <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full flex flex-col justify-between space-y-2">
+                    <div class="p-5 rounded-2xl border-2 border-tiktokCyan/80 bg-tiktokCyan/10 peer-checked:active-variant transition-all h-full flex flex-col justify-between space-y-3 relative overflow-hidden shadow-lg hover:scale-[1.02]">
+                        <div class="absolute -right-8 -top-8 w-20 h-20 bg-tiktokCyan/20 rounded-full blur-xl pointer-events-none"></div>
                         <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-semibold text-sm text-white">Variant 1</span>
-                                <span class="text-[10px] bg-tiktokCyan/20 text-tiktokCyan px-2 py-0.5 rounded-full font-bold">แนะนำ</span>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="font-extrabold text-base text-white">Variant 1</span>
+                                <span class="text-[10px] bg-gradient-to-r from-tiktokCyan to-tiktokRed text-black px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider shadow">แนะนำ</span>
                             </div>
-                            <p class="text-xs font-medium text-tiktokCyan">👉 คมชัดสูงสุด สำหรับคลิปทั่วไป</p>
+                            <p class="text-xs font-bold text-tiktokCyan">👉 คมชัดสูงสุด สำหรับคลิปทั่วไป</p>
                         </div>
-                        <p class="text-[11px] text-gray-400">ใช้เทคนิคปรับโครงสร้างแบบใหม่ล่าสุด ป้องกันการโดนบีบอัดภาพแตกได้ดีที่สุด ควรเลือกตัวนี้เป็นหลัก</p>
+                        <p class="text-[11px] text-gray-300 leading-relaxed">ใช้เทคนิคปรับโครงสร้างแบบใหม่ล่าสุด ป้องกันการโดนบีบอัดภาพแตกได้ดีที่สุด ควรเลือกตัวนี้เป็นหลัก</p>
                     </div>
                 </label>
 
                 <!-- Variant 2 -->
                 <label class="cursor-pointer">
                     <input type="radio" name="variant" value="variant-2" class="peer hidden">
-                    <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full flex flex-col justify-between space-y-2">
+                    <div class="p-5 rounded-2xl border border-borderBg bg-cardBg/60 peer-checked:active-variant transition-all h-full flex flex-col justify-between space-y-3 hover:border-gray-600 hover:scale-[1.02]">
                         <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-semibold text-sm text-white">Variant 2</span>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="font-bold text-base text-white">Variant 2</span>
                             </div>
-                            <p class="text-xs font-medium text-amber-400">👉 ใช้เมื่อ Variant 1 มีปัญหา</p>
+                            <p class="text-xs font-bold text-amber-400">👉 ใช้เมื่อ Variant 1 มีปัญหา</p>
                         </div>
-                        <p class="text-[11px] text-gray-400">ใช้โครงสร้างมาตรฐานของมือถือทั่วไป มีความเสถียรสูง เหมาะสำหรับคลิปที่ใช้วิธีแรกแล้วเล่นไม่ได้</p>
+                        <p class="text-[11px] text-gray-400 leading-relaxed">ใช้โครงสร้างมาตรฐานของมือถือทั่วไป มีความเสถียรสูง เหมาะสำหรับคลิปที่ใช้วิธีแรกแล้วเล่นไม่ได้</p>
                     </div>
                 </label>
 
                 <!-- Variant 3 -->
                 <label class="cursor-pointer">
                     <input type="radio" name="variant" value="variant-3" class="peer hidden">
-                    <div class="p-4 rounded-xl border border-borderBg bg-cardBg peer-checked:border-tiktokCyan peer-checked:bg-tiktokCyan/5 transition-all h-full flex flex-col justify-between space-y-2">
+                    <div class="p-5 rounded-2xl border border-borderBg bg-cardBg/60 peer-checked:active-variant transition-all h-full flex flex-col justify-between space-y-3 hover:border-gray-600 hover:scale-[1.02]">
                         <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-semibold text-sm text-white">Variant 3</span>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="font-bold text-base text-white">Variant 3</span>
                             </div>
-                            <p class="text-xs font-medium text-tiktokRed">👉 ทางเลือกสำรองสุดท้าย</p>
+                            <p class="text-xs font-bold text-tiktokRed">👉 ทางเลือกสำรองสุดท้าย</p>
                         </div>
-                        <p class="text-[11px] text-gray-400">โครงสร้างไฟล์แบบพิเศษ ออกแบบมาไว้แก้ทาง เวลาที่ TikTok มีการอัปเดตระบบตรวจจับใหม่</p>
+                        <p class="text-[11px] text-gray-400 leading-relaxed">โครงสร้างไฟล์แบบพิเศษ ออกแบบมาไว้แก้ทาง เวลาที่ TikTok มีการอัปเดตระบบตรวจจับใหม่</p>
                     </div>
                 </label>
             </div>
 
             <!-- Action Button -->
-            <button id="patchBtn" disabled class="w-full py-3.5 rounded-xl gradient-btn text-black font-bold text-sm flex items-center justify-center gap-2 shadow-lg mt-4">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <button id="patchBtn" disabled class="w-full py-4 rounded-2xl gradient-btn text-black font-extrabold text-base flex items-center justify-center gap-2 shadow-2xl mt-4 group">
+                <!-- Button Shimmer Effect -->
+                <div class="absolute inset-0 w-1/2 h-full bg-white/30 -skew-x-12 -translate-x-full group-hover:animate-shimmer pointer-events-none"></div>
+                <i class="fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12 transition-transform"></i>
                 <span>เริ่มปรับแต่งวิดีโอ (Patch Video)</span>
             </button>
         </div>
 
         <!-- Progress Status -->
-        <div id="statusCard" class="hidden glass-card rounded-2xl p-6 space-y-3">
-            <div class="flex justify-between items-center text-xs text-gray-300">
-                <span id="statusText" class="font-medium">กำลังเตรียมพร้อม...</span>
-                <span id="statusPercent" class="text-tiktokCyan font-bold">0%</span>
+        <div id="statusCard" class="hidden glass-card rounded-3xl p-6 space-y-3 animate-fade-in">
+            <div class="flex justify-between items-center text-xs font-bold text-gray-200">
+                <span id="statusText" class="font-medium flex items-center gap-2">
+                    <i class="fa-solid fa-circle-notch fa-spin text-tiktokCyan"></i> กำลังเตรียมพร้อม...
+                </span>
+                <span id="statusPercent" class="text-tiktokCyan font-mono text-sm">0%</span>
             </div>
-            <div class="w-full bg-cardBg h-2 rounded-full overflow-hidden border border-borderBg">
-                <div id="progressBar" class="bg-gradient-to-r from-tiktokCyan to-tiktokRed h-full w-0 transition-all duration-300"></div>
+            <div class="w-full bg-cardBg h-3 rounded-full overflow-hidden border border-borderBg p-0.5">
+                <div id="progressBar" class="bg-gradient-to-r from-tiktokCyan via-blue-500 to-tiktokRed h-full w-0 rounded-full transition-all duration-300 relative">
+                    <div class="absolute right-0 top-0 bottom-0 w-2 bg-white rounded-full blur-sm"></div>
+                </div>
             </div>
         </div>
 
         <!-- Result Card -->
-        <div id="resultCard" class="hidden glass-card rounded-2xl p-6 space-y-4 border-tiktokCyan/30">
+        <div id="resultCard" class="hidden glass-card rounded-3xl p-6 space-y-4 border-tiktokCyan/50 shadow-2xl animate-fade-in">
             <div class="flex items-center gap-3 text-emerald-400">
-                <i class="fa-solid fa-circle-check text-xl"></i>
-                <span class="font-semibold text-white text-sm">ปรับแต่งเมตาดาต้าสำเร็จเรียบร้อย! พร้อมอัปโหลดลง TikTok</span>
+                <i class="fa-solid fa-circle-check text-2xl animate-bounce"></i>
+                <span class="font-bold text-white text-base">ปรับแต่งเมตาดาต้าสำเร็จเรียบร้อย! พร้อมอัปโหลดลง TikTok</span>
             </div>
-            <div class="p-4 rounded-xl bg-cardBg border border-borderBg flex flex-col md:flex-row items-center justify-between gap-4">
-                <video id="videoPreview" controls class="max-h-48 rounded-lg w-full md:w-auto bg-black"></video>
-                <div class="flex flex-col gap-2 w-full md:w-auto">
-                    <a id="downloadBtn" download class="px-6 py-3 rounded-xl bg-tiktokCyan text-black font-bold text-sm text-center flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all">
-                        <i class="fa-solid fa-download"></i> ดาวน์โหลดวิดีโอ HD
+            <div class="p-4 rounded-2xl bg-cardBg/90 border border-borderBg flex flex-col md:flex-row items-center justify-between gap-5">
+                <video id="videoPreview" controls class="max-h-52 rounded-xl w-full md:w-auto bg-black shadow-lg"></video>
+                <div class="flex flex-col gap-3 w-full md:w-auto">
+                    <a id="downloadBtn" download class="px-8 py-4 rounded-xl bg-tiktokCyan text-black font-extrabold text-sm text-center flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all shadow-lg hover:scale-105">
+                        <i class="fa-solid fa-download text-base"></i> ดาวน์โหลดวิดีโอ HD
                     </a>
                 </div>
             </div>
         </div>
 
         <!-- Error Alert -->
-        <div id="errorCard" class="hidden glass-card rounded-2xl p-4 bg-red-500/10 border-red-500/30 text-red-400 text-xs flex items-center gap-3">
-            <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+        <div id="errorCard" class="hidden glass-card rounded-2xl p-4 bg-red-500/10 border-red-500/40 text-red-400 text-xs flex items-center gap-3 animate-fade-in">
+            <i class="fa-solid fa-triangle-exclamation text-xl text-red-400"></i>
             <div>
-                <p class="font-bold">เกิดข้อผิดพลาด</p>
-                <p id="errorText" class="text-red-300 mt-0.5">-</p>
+                <p class="font-bold text-sm">เกิดข้อผิดพลาด</p>
+                <p id="errorText" class="text-red-300 mt-0.5 leading-relaxed">-</p>
             </div>
         </div>
 
     </main>
 
     <!-- Footer Credit -->
-    <footer class="max-w-4xl mx-auto w-full text-center py-6 text-xs text-gray-500 border-t border-borderBg/50 mt-8">
+    <footer class="max-w-4xl mx-auto w-full text-center py-6 text-xs text-gray-500 border-t border-borderBg/50 mt-10 z-10">
         <p>
-            Powered by <a href="https://compressbase.com" target="_blank" class="text-tiktokCyan hover:underline font-medium">CompressBase</a> 
-            • เครื่องมือนี้ช่วยปรับแต่ง Metadata วิดีโอเพื่อป้องกันการถูกบีบอัดภาพแตกบน TikTok
+            Powered by <a href="https://compressbase.com" target="_blank" class="text-tiktokCyan hover:underline font-bold">CompressBase</a> 
+            • เครื่องมือ <strong class="text-gray-400">klipbase</strong> ช่วยปรับแต่ง Metadata วิดีโอเพื่อป้องกันการถูกบีบอัดภาพแตกบน TikTok
         </p>
     </footer>
 
     <!-- Large File Warning Modal (100MB+ Mobile Warning) -->
-    <div id="largeFileModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-card max-w-md w-full rounded-2xl p-6 space-y-4 border-amber-500/40 text-center">
-            <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-xl">
+    <div id="largeFileModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 space-y-4 border-amber-500/50 text-center shadow-2xl animate-fade-in">
+            <div class="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-2xl animate-bounce">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
             <div>
-                <h3 class="text-lg font-bold text-white">ไฟล์มีขนาดใหญ่เกิน 100 MB</h3>
-                <p class="text-xs text-gray-400 mt-1">
-                    เบราว์เซอร์บน iPhone และ iPad อาจปิดตัวหรือรีเฟรชหน้าเว็บใหม่เองโดยอัตโนมัติขณะประมวลผลไฟล์ขนาดใหญ่ขนาดนี้ แนะนำให้ใช้งานผ่านคอมพิวเตอร์แทน
+                <h3 class="text-xl font-extrabold text-white">ไฟล์มีขนาดใหญ่เกิน 100 MB</h3>
+                <p class="text-xs text-gray-300 mt-2 leading-relaxed">
+                    เบราว์เซอร์บน iPhone และ iPad อาจปิดตัวหรือรีเฟรชหน้าเว็บใหม่เองโดยอัตโนมัติขณะประมวลผลไฟล์ขนาดใหญ่ขนาดนี้ แนะนำให้ใช้งาน klipbase บนคอมพิวเตอร์แทน
                 </p>
             </div>
-            <div class="p-3 rounded-xl bg-cardBg border border-borderBg text-left">
-                <label class="flex items-start gap-2 cursor-pointer text-xs text-gray-300">
-                    <input type="checkbox" id="confirmLargeFile" class="mt-0.5 accent-tiktokCyan">
+            <div class="p-3.5 rounded-2xl bg-cardBg border border-borderBg text-left">
+                <label class="flex items-start gap-2.5 cursor-pointer text-xs text-gray-300 select-none">
+                    <input type="checkbox" id="confirmLargeFile" class="mt-0.5 accent-tiktokCyan w-4 h-4 rounded">
                     <span>ฉันเข้าใจความเสี่ยงและยืนยันจะดำเนินการต่อบนอุปกรณ์นี้ (ไม่แนะนำ)</span>
                 </label>
             </div>
-            <div class="flex gap-2">
-                <button id="cancelLargeFileBtn" class="flex-1 py-2.5 rounded-xl bg-cardBg border border-borderBg text-gray-300 text-xs hover:bg-gray-800">ยกเลิก / เปลี่ยนไฟล์</button>
-                <button id="proceedLargeFileBtn" disabled class="flex-1 py-2.5 rounded-xl gradient-btn text-black font-bold text-xs opacity-40 cursor-not-allowed">ยืนยันทำต่อ</button>
+            <div class="flex gap-2.5">
+                <button id="cancelLargeFileBtn" class="flex-1 py-3 rounded-xl bg-cardBg border border-borderBg text-gray-300 text-xs font-bold hover:bg-gray-800 transition-all">ยกเลิก / เปลี่ยนไฟล์</button>
+                <button id="proceedLargeFileBtn" disabled class="flex-1 py-3 rounded-xl gradient-btn text-black font-bold text-xs opacity-40 cursor-not-allowed transition-all">ยืนยันทำต่อ</button>
             </div>
         </div>
     </div>
 
     <!-- Quota Limit Modal -->
-    <div id="quotaModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="glass-card max-w-md w-full rounded-2xl p-6 space-y-4 border-tiktokRed/40 text-center">
-            <div class="w-12 h-12 rounded-full bg-tiktokRed/20 text-tiktokRed flex items-center justify-center mx-auto text-xl">
+    <div id="quotaModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-3xl p-6 space-y-4 border-tiktokRed/50 text-center shadow-2xl animate-fade-in">
+            <div class="w-14 h-14 rounded-full bg-tiktokRed/20 text-tiktokRed flex items-center justify-center mx-auto text-2xl animate-pulse">
                 <i class="fa-solid fa-lock"></i>
             </div>
             <div>
-                <h3 class="text-lg font-bold text-white">ใช้โควตาฟรีครบ 7 ครั้งแล้ว</h3>
-                <p class="text-xs text-gray-400 mt-1">
-                    ระบบจำกัดการใช้งานฟรี 7 คลิป ต่อ 1 สัปดาห์ ต่อเครื่อง เพื่อป้องกันการใช้งานรัวเกินไป
+                <h3 class="text-xl font-extrabold text-white">ใช้โควตาฟรีครบ 7 ครั้งแล้ว</h3>
+                <p class="text-xs text-gray-300 mt-2 leading-relaxed">
+                    klipbase จำกัดการใช้งานฟรี 7 คลิป ต่อ 1 สัปดาห์ ต่อเครื่อง เพื่อป้องกันการใช้งานรัวเกินไป
                 </p>
             </div>
-            <div class="p-3 rounded-xl bg-cardBg border border-borderBg text-center text-xs space-y-1">
+            <div class="p-4 rounded-2xl bg-cardBg border border-borderBg text-center text-xs space-y-1">
                 <span class="text-gray-400">โควตารอบถัดไปจะรีเซ็ตในอีก</span>
-                <p id="timeToReset" class="text-tiktokCyan font-bold text-sm">-</p>
+                <p id="timeToReset" class="text-tiktokCyan font-extrabold text-base font-mono">-</p>
             </div>
-            <button id="closeQuotaModalBtn" class="w-full py-2.5 rounded-xl bg-cardBg border border-borderBg text-white text-xs hover:bg-gray-800">รับทราบ</button>
+            <button id="closeQuotaModalBtn" class="w-full py-3 rounded-xl bg-cardBg border border-borderBg text-white text-xs font-bold hover:bg-gray-800 transition-all">รับทราบ</button>
         </div>
     </div>
 
@@ -488,13 +552,13 @@
             resultCard.classList.add('hidden');
 
             try {
-                statusText.textContent = "Step 1/2: กำลังตรวจเช็กและจัดระเบียบโครงสร้าง MP4 Container...";
+                statusText.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-tiktokCyan"></i> Step 1/2: กำลังจัดระเบียบโครงสร้าง MP4 Container...`;
                 progressBar.style.width = "35%";
                 statusPercent.textContent = "35%";
 
                 const cleanFile = await sanitizeMp4File(currentFile);
 
-                statusText.textContent = "Step 2/2: กำลังปรับแต่ง Metadata (CompressBase API)...";
+                statusText.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-tiktokRed"></i> Step 2/2: กำลังปรับแต่ง Metadata (klipbase)...`;
                 progressBar.style.width = "70%";
                 statusPercent.textContent = "70%";
 
@@ -504,7 +568,7 @@
                     postingDevice: selectedVariant,
                     signal: AbortSignal.timeout(180000),
                     onStatus: (msg) => {
-                        statusText.textContent = `กำลังประมวลผล: ${msg}`;
+                        statusText.innerHTML = `<i class="fa-solid fa-gear fa-spin text-tiktokCyan"></i> กำลังประมวลผล: ${msg}`;
                     }
                 });
 
@@ -516,7 +580,7 @@
                 const outputUrl = URL.createObjectURL(output);
                 videoPreview.src = outputUrl;
                 downloadBtn.href = outputUrl;
-                downloadBtn.download = `HD_${currentFile.name}`;
+                downloadBtn.download = `klipbase_${currentFile.name}`;
 
                 setTimeout(() => {
                     statusCard.classList.add('hidden');
