@@ -438,7 +438,6 @@
             uploadPrompt.classList.remove('hidden');
             fileInfo.classList.add('hidden');
             
-            // Reset Patch Button to Original State
             patchBtn.disabled = true;
             patchBtnText.textContent = "เริ่มปรับแต่งวิดีโอ (Patch Video)";
             patchBtnIcon.className = "fa-solid fa-wand-magic-sparkles text-lg group-hover:rotate-12 transition-transform";
@@ -549,7 +548,6 @@
         }
 
         patchBtn.onclick = async () => {
-            // If process completed, click button to reset and process another video
             if (isCompleted) {
                 resetState();
                 return;
@@ -605,13 +603,11 @@
                     statusCard.classList.add('hidden');
                     resultCard.classList.remove('hidden');
                     
-                    // Transform Patch Button to "ปรับแต่งวิดีโออื่น"
                     patchBtn.disabled = false;
                     patchBtnText.textContent = "ปรับแต่งวิดีโออื่น";
                     patchBtnIcon.className = "fa-solid fa-arrow-rotate-right text-lg group-hover:rotate-180 transition-transform";
                     isCompleted = true;
 
-                    // Scroll to result
                     resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }, 500);
 
@@ -622,36 +618,21 @@
             }
         }
 
-        // Universal Download Handler (Works for Chrome, Safari, Google App on Mobile & iPad)
-        downloadBtn.onclick = async () => {
+        // Robust Direct Download Handler for iPad / Mobile Webviews
+        downloadBtn.onclick = () => {
             if (!generatedBlobUrl) return;
 
-            try {
-                downloadBtn.disabled = true;
-                downloadBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังเตรียมไฟล์ดาวน์โหลด...`;
-
-                const response = await fetch(generatedBlobUrl);
-                const blob = await response.blob();
-                const blobUrl = URL.createObjectURL(blob);
-
+            // Open in new tab/window which allows native iOS/iPadOS/Android saving
+            const newWindow = window.open(generatedBlobUrl, '_blank');
+            if (!newWindow) {
+                // Fallback if popup blocked
                 const link = document.createElement('a');
-                link.href = blobUrl;
+                link.href = generatedBlobUrl;
                 link.download = `klipbase_${currentFile ? currentFile.name : 'video.mp4'}`;
+                link.target = '_blank';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-
-                setTimeout(() => {
-                    URL.revokeObjectURL(blobUrl);
-                    downloadBtn.disabled = false;
-                    downloadBtn.innerHTML = `<i class="fa-solid fa-download text-base"></i> ดาวน์โหลดวิดีโอ HD`;
-                }, 1000);
-
-            } catch (err) {
-                // Fallback direct open for Google App / Mobile Webview
-                window.open(generatedBlobUrl, '_blank');
-                downloadBtn.disabled = false;
-                downloadBtn.innerHTML = `<i class="fa-solid fa-download text-base"></i> ดาวน์โหลดวิดีโอ HD`;
             }
         };
 
