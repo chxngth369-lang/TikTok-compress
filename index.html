@@ -21,9 +21,7 @@
                     animation: {
                         'pulse-glow': 'pulseGlow 3s infinite ease-in-out',
                         'float': 'float 3s ease-in-out infinite',
-                        'spin-slow': 'spin 8s linear infinite',
-                        'shimmer': 'shimmer 2.5s infinite',
-                        'border-glow': 'borderGlow 4s linear infinite'
+                        'shimmer': 'shimmer 2.5s infinite'
                     },
                     keyframes: {
                         pulseGlow: {
@@ -36,10 +34,6 @@
                         },
                         shimmer: {
                             '100%': { transform: 'translateX(100%)' }
-                        },
-                        borderGlow: {
-                            '0%, 100%': { borderColor: '#25F4EE', boxShadow: '0 0 15px rgba(37, 244, 238, 0.4)' },
-                            '50%': { borderColor: '#FE2C55', boxShadow: '0 0 15px rgba(254, 44, 85, 0.4)' }
                         }
                     }
                 }
@@ -48,8 +42,8 @@
     </script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- FingerprintJS v3 CDN -->
-    <script src="https://openfpcdn.io/fingerprintjs/v3"></script>
+    <!-- Google Identity Services SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body { 
             background-color: #0D0F12; 
@@ -94,7 +88,7 @@
     <div class="fixed -bottom-40 -right-40 w-96 h-96 bg-tiktokRed/15 rounded-full blur-3xl pointer-events-none animate-pulse-glow" style="animation-delay: 1.5s;"></div>
 
     <!-- Header / Navbar -->
-    <header class="max-w-4xl mx-auto w-full flex items-center justify-between mb-8 z-10">
+    <header class="max-w-4xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between mb-8 gap-4 z-10">
         <div class="flex items-center gap-3">
             <div class="w-11 h-11 rounded-2xl gradient-btn flex items-center justify-center text-black font-extrabold text-2xl shadow-xl hover:scale-105 transition-transform">
                 <i class="fa-solid fa-play text-white text-lg"></i>
@@ -107,11 +101,26 @@
                 <p class="text-xs text-gray-400">ป้องกันการโดนบีบอัดไฟล์วิดีโอคุณภาพสูงจาก TikTok</p>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+
+        <div class="flex items-center gap-3">
             <!-- Quota Badge -->
-            <div id="quotaBadge" class="hidden sm:flex items-center gap-2 bg-cardBg/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-tiktokCyan/30 text-xs font-semibold shadow-lg">
+            <div id="quotaBadge" class="flex items-center gap-2 bg-cardBg/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-tiktokCyan/30 text-xs font-semibold shadow-lg">
                 <i class="fa-solid fa-ticket text-tiktokCyan animate-bounce"></i>
                 <span>โควตาฟรี: <strong id="quotaText" class="text-tiktokCyan text-sm font-bold">7/7</strong> ครั้ง</span>
+            </div>
+
+            <!-- Auth Section -->
+            <div id="authContainer">
+                <button id="googleLoginBtn" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-gray-200 transition-all shadow-lg">
+                    <i class="fa-brands fa-google text-red-500"></i> เข้าสู่ระบบด้วย Google
+                </button>
+                <div id="userProfile" class="hidden flex items-center gap-3 bg-cardBg px-3 py-1.5 rounded-xl border border-borderBg">
+                    <img id="userAvatar" src="" alt="Avatar" class="w-7 h-7 rounded-full border border-tiktokCyan">
+                    <span id="userName" class="text-xs font-bold text-white max-w-[100px] truncate"></span>
+                    <button id="logoutBtn" title="ออกจากระบบ" class="text-gray-400 hover:text-tiktokRed text-xs ml-1">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -239,9 +248,9 @@
             <div class="p-4 rounded-2xl bg-cardBg/90 border border-borderBg flex flex-col md:flex-row items-center justify-between gap-5">
                 <video id="videoPreview" controls class="max-h-52 rounded-xl w-full md:w-auto bg-black shadow-lg"></video>
                 <div class="flex flex-col gap-3 w-full md:w-auto">
-                    <a id="downloadBtn" class="px-8 py-4 rounded-xl bg-tiktokCyan text-black font-extrabold text-sm text-center flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all shadow-lg hover:scale-105 cursor-pointer">
+                    <button id="downloadBtn" class="px-8 py-4 rounded-xl bg-tiktokCyan text-black font-extrabold text-sm text-center flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all shadow-lg hover:scale-105 cursor-pointer">
                         <i class="fa-solid fa-download text-base"></i> ดาวน์โหลดวิดีโอ HD
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -299,7 +308,7 @@
             <div>
                 <h3 class="text-xl font-extrabold text-white">ใช้โควตาฟรีครบ 7 ครั้งแล้ว</h3>
                 <p class="text-xs text-gray-300 mt-2 leading-relaxed">
-                    klipbase จำกัดการใช้งานฟรี 7 คลิป ต่อ 1 สัปดาห์ ต่อเครื่อง เพื่อป้องกันการใช้งานรัวเกินไป
+                    klipbase จำกัดการใช้งานฟรี 7 คลิป ต่อ 1 สัปดาห์ ต่อเครื่อง/บัญชี เพื่อป้องกันการใช้งานรัวเกินไป
                 </p>
             </div>
             <div class="p-4 rounded-2xl bg-cardBg border border-borderBg text-center text-xs space-y-1">
@@ -340,6 +349,13 @@
         const timeToReset = document.getElementById('timeToReset');
         const closeQuotaModalBtn = document.getElementById('closeQuotaModalBtn');
 
+        // Auth Elements
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const userProfile = document.getElementById('userProfile');
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+        const logoutBtn = document.getElementById('logoutBtn');
+
         // Modal Elements
         const largeFileModal = document.getElementById('largeFileModal');
         const confirmLargeFile = document.getElementById('confirmLargeFile');
@@ -348,53 +364,95 @@
 
         let currentFile = null;
         let pendingFile = null;
-        let deviceUuid = null;
+        let userKey = null;
         let generatedBlobUrl = null;
         let isCompleted = false;
 
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
-        // Persistent Universal Quota Manager (Shared across localStorage & Cookie storage)
-        async function initQuotaManager() {
+        // --- Google Sign-In & Quota Management ---
+        function parseJwt(token) {
             try {
-                let uuid = localStorage.getItem('klipbase_device_uuid');
-                if (!uuid) {
-                    // Try checking cookie fallback
-                    const match = document.cookie.match(new RegExp('(^| )klipbase_uuid=([^;]+)'));
-                    if (match) {
-                        uuid = match[2];
-                        localStorage.setItem('klipbase_device_uuid', uuid);
-                    }
-                }
-
-                if (!uuid) {
-                    if (typeof FingerprintJS !== 'undefined') {
-                        const fp = await FingerprintJS.load();
-                        const result = await fp.get();
-                        uuid = result.visitorId;
-                    } else {
-                        uuid = 'dev_' + Math.random().toString(36).substring(2, 12);
-                    }
-                    localStorage.setItem('klipbase_device_uuid', uuid);
-                    // Set cookie valid for 1 year
-                    document.cookie = `klipbase_uuid=${uuid}; path=/; max-age=31536000; SameSite=Lax`;
-                }
-                deviceUuid = uuid;
-            } catch (err) {
-                let fallback = localStorage.getItem('klipbase_device_uuid');
-                if (!fallback) {
-                    fallback = 'dev_' + Math.random().toString(36).substring(2, 12);
-                    localStorage.setItem('klipbase_device_uuid', fallback);
-                }
-                deviceUuid = fallback;
+                let base64Url = token.split('.')[1];
+                let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
             }
+        }
+
+        window.handleCredentialResponse = function(response) {
+            const data = parseJwt(response.credential);
+            if (data) {
+                const user = { name: data.name, email: data.email, picture: data.picture };
+                localStorage.setItem('klipbase_user', JSON.stringify(user));
+                setupUserSession(user);
+            }
+        };
+
+        function setupUserSession(user) {
+            userKey = `quota_user_${user.email}`;
+            googleLoginBtn.classList.add('hidden');
+            userProfile.classList.remove('hidden');
+            userName.textContent = user.name;
+            userAvatar.src = user.picture;
             updateQuotaUI();
         }
 
+        logoutBtn.onclick = () => {
+            localStorage.removeItem('klipbase_user');
+            userProfile.classList.add('hidden');
+            googleLoginBtn.classList.remove('hidden');
+            initAnonymousSession();
+        };
+
+        function initAnonymousSession() {
+            let uuid = localStorage.getItem('klipbase_device_uuid');
+            if (!uuid) {
+                uuid = 'dev_' + Math.random().toString(36).substring(2, 12);
+                localStorage.setItem('klipbase_device_uuid', uuid);
+            }
+            userKey = `quota_guest_${uuid}`;
+            updateQuotaUI();
+        }
+
+        async function initAuthAndQuota() {
+            const savedUser = localStorage.getItem('klipbase_user');
+            if (savedUser) {
+                try {
+                    setupUserSession(JSON.parse(savedUser));
+                } catch (e) {
+                    initAnonymousSession();
+                }
+            } else {
+                initAnonymousSession();
+            }
+
+            // Initialize Google Sign-In Client (Replace CLIENT_ID with your Google Cloud Console Client ID when deploying)
+            if (window.google) {
+                google.accounts.id.initialize({
+                    client_id: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com", // แทนที่ด้วย Google Client ID ของคุณ
+                    callback: window.handleCredentialResponse
+                });
+
+                googleLoginBtn.onclick = () => {
+                    google.accounts.id.prompt((notification) => {
+                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                            // Fallback popup if One Tap is blocked
+                            google.accounts.id.renderButton(googleLoginBtn, { theme: "outline", size: "large" });
+                        }
+                    });
+                };
+            }
+        }
+
         function getQuotaHistory() {
-            if (!deviceUuid) return [];
-            const data = localStorage.getItem(`quota_${deviceUuid}`);
+            if (!userKey) return [];
+            const data = localStorage.getItem(userKey);
             if (!data) return [];
             const timestamps = JSON.parse(data);
             const now = Date.now();
@@ -413,7 +471,7 @@
         function recordUsage() {
             const history = getQuotaHistory();
             history.push(Date.now());
-            localStorage.setItem(`quota_${deviceUuid}`, JSON.stringify(history));
+            localStorage.setItem(userKey, JSON.stringify(history));
             updateQuotaUI();
         }
 
@@ -430,7 +488,7 @@
             return `${hours} ชั่วโมง`;
         }
 
-        initQuotaManager();
+        initAuthAndQuota();
 
         dropZone.onclick = () => videoInput.click();
         videoInput.onchange = (e) => handleFileSelect(e.target.files[0]);
