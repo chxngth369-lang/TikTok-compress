@@ -1,8 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/__/auth/:path*",
-      "destination": "https://klipbase-78dd7.firebaseapp.com/__/auth/:path*"
-    }
+    { "source": "/__/auth/:path*", "destination": "https://klipbase-78dd7.firebaseapp.com/__/auth/:path*" },
+    { "source": "/__/firebase/:path*", "destination": "https://klipbase-78dd7.firebaseapp.com/__/firebase/:path*" }
   ]
 }
