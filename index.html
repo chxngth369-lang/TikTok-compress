@@ -318,15 +318,15 @@
         </div>
     </div>
 
-    <!-- Application Script with Firebase & Custom Google Client ID -->
+    <!-- Application Script with Firebase (Redirect Auth for Mobile Stability) -->
     <script type="module">
         import { patchVideo } from 'https://compressbase.com/method-api/client.mjs';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // ==========================================
-        // ⚙️ ใส่ค่า Firebase Config ของคุณตรงนี้
+        // ⚙️ ใส่ค่า Firebase Config ของคุณตรงนี้ให้ครบถ้วน
         // ==========================================
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
@@ -341,7 +341,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // กำหนด Custom Google Client ID ที่คุณสร้าง
         const googleProvider = new GoogleAuthProvider();
         googleProvider.setCustomParameters({
             client_id: "939066669789-lcoo1qiur4mqdqk584mluu7h4snv37gf.apps.googleusercontent.com"
@@ -394,6 +393,12 @@
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
+        // ตรวจสอบผลลัพธ์หลังจาก Google Redirect กลับมาที่หน้าเว็บ
+        getRedirectResult(auth).catch((error) => {
+            console.error("Redirect Auth Error:", error);
+            showError("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+        });
+
         // --- Firebase Auth & Firestore Quota Management ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -413,10 +418,11 @@
 
         googleLoginBtn.onclick = async () => {
             try {
-                await signInWithPopup(auth, googleProvider);
+                // ใช้แบบ Redirect แทน Popup เพื่อป้องกันจอขาวบนมือถือ/iPad
+                await signInWithRedirect(auth, googleProvider);
             } catch (err) {
                 console.error("Login Error:", err);
-                showError("ไม่สามารถเข้าสู่ระบบด้วย Google ได้ กรุณาลองใหม่อีกครั้ง");
+                showError("ไม่สามารถเข้าสู่ระบบด้วย Google ได้: " + err.message);
             }
         };
 
