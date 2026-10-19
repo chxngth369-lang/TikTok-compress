@@ -318,22 +318,11 @@
         </div>
     </div>
 
-    <!-- ตรวจสอบว่าสคริปต์หลักโหลดสำเร็จหรือไม่ -->
-    <script>
-        document.getElementById('googleLoginBtn').addEventListener('click', function () {
-            if (!window.__klipbaseReady) {
-                alert('สคริปต์หลักโหลดไม่สำเร็จ (Firebase import พัง) ลองรีเฟรชหน้าหรือเช็คอินเทอร์เน็ต');
-            }
-        });
-    </script>
-
     <!-- Application Script with Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        window.__klipbaseReady = true;
 
         // ==========================================
         // ⚙️ Firebase Config
@@ -402,6 +391,7 @@
         const MAX_QUOTA = 7;
         const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
+        // จัดการผลลัพธ์หลังจาก Google Redirect กลับมาที่หน้าเว็บ
         getRedirectResult(auth).catch((error) => {
             console.error("Redirect Auth Error:", error);
             showError("เข้าสู่ระบบไม่สำเร็จ: " + (error.code || error.message));
@@ -418,7 +408,7 @@
                     await syncQuotaFromServer();
                 } catch (e) {
                     console.error("Quota sync error:", e);
-                    showError("โหลดโควตาไม่สำเร็จ (เช็ค Firestore rules): " + (e.code || e.message));
+                    showError("โหลดโควตาไม่สำเร็จ: " + (e.code || e.message));
                 }
             } else {
                 currentUser = null;
@@ -428,29 +418,14 @@
             }
         });
 
+        // ใช้ Redirect แทน Popup ป้องกันปัญหาหน้าขาวและถูกบล็อกบนมือถือ/iPad
         googleLoginBtn.onclick = async () => {
             errorCard.classList.add('hidden');
             try {
-                await signInWithPopup(auth, googleProvider);
+                await signInWithRedirect(auth, googleProvider);
             } catch (err) {
                 console.error("Login Error:", err);
-                if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment') {
-                    try {
-                        await signInWithRedirect(auth, googleProvider);
-                        return;
-                    } catch (e) {
-                        err = e;
-                    }
-                }
-                if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
-
-                if (err.code === 'auth/unauthorized-domain') {
-                    showError("โดเมนนี้ยังไม่ได้เพิ่มใน Firebase Authorized domains: " + location.hostname);
-                } else if (err.code === 'auth/operation-not-allowed') {
-                    showError("ยังไม่ได้เปิด Google sign-in ใน Firebase Console (Authentication → Sign-in method)");
-                } else {
-                    showError("เข้าสู่ระบบไม่สำเร็จ: " + (err.code || err.message));
-                }
+                showError("เข้าสู่ระบบไม่สำเร็จ: " + (err.code || err.message));
             }
         };
 
