@@ -325,7 +325,7 @@
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // ==========================================
-        // Firebase Config (ใช้โดเมน Vercel เป็น authDomain ร่วมกับ vercel.json)
+        // Firebase Config (เชื่อมต่อกับ Project klipbase-78dd7)
         // ==========================================
         const useOwnDomain = location.protocol === 'https:' && location.hostname !== 'localhost';
         const firebaseConfig = {
@@ -439,7 +439,7 @@
             }
         });
 
-        // ---------- Login Button (ใช้ Popup ล้วนเพื่อความเสถียรผ่าน Vercel Proxy) ----------
+        // ---------- Login Button ----------
         googleLoginBtn.onclick = async () => {
             errorCard.classList.add('hidden');
 
